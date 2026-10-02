@@ -44,7 +44,7 @@ const build = newNotebookBuild({
   cache,
   moduleServer,
   dom,
-  mode: "hosted", // modules served live from /_m/; "static" materializes them instead
+  mode: "static", // "hosted", // modules served live from /_m/; "static" materializes them instead
   basePath: "/_m/",
   stylesUrl: "/_m/@observablehq/notebook-kit@2.6.4/dist/src/styles/index.css",
   onFailed: ({ notebookPath, error }) =>
