@@ -34,7 +34,6 @@
     "@statewalker/webrun-files-mem": "catalog:",
     "@statewalker/webrun-files-node": "catalog:",
     "@types/jsdom": "catalog:",
-    "@types/markdown-it": "catalog:",
     "esbuild": "catalog:",
     "jsdom": "catalog:",
     "playwright": "catalog:",
