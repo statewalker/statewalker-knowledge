@@ -8,8 +8,8 @@
     "start": "pnpm --filter @statewalker/notebook-build --filter @statewalker/notebook-site run build && node serve.mjs"
   },
   "dependencies": {
-    "@statewalker/notebook-build": "workspace:*",
-    "@statewalker/notebook-site": "workspace:*",
+    "@statewalker/notebook-build": "workspace:^",
+    "@statewalker/notebook-site": "workspace:^",
     "@statewalker/webrun-files": "catalog:",
     "@statewalker/webrun-files-node": "catalog:",
     "@statewalker/webrun-modules": "catalog:",
