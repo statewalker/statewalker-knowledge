@@ -24,22 +24,22 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test-browser.json"
   },
   "peerDependencies": {
-    "@statewalker/db-api": "workspace:*",
-    "@statewalker/webrun-files": "workspace:*"
+    "@statewalker/db-api": "catalog:peers",
+    "@statewalker/webrun-files": "catalog:peers"
   },
   "devDependencies": {
-    "@observablehq/notebook-kit": "^2.6.4",
-    "@statewalker/db-api": "workspace:*",
-    "@statewalker/db-duckdb-browser": "workspace:*",
-    "@statewalker/webrun-files": "workspace:*",
-    "@statewalker/webrun-files-mem": "workspace:*",
-    "@statewalker/webrun-files-node": "workspace:*",
-    "@statewalker/webrun-modules": "workspace:*",
-    "esbuild": "^0.28.2",
-    "playwright": "^1.63.0",
-    "tsdown": "^0.23.0",
-    "typescript": "^7.0.2",
-    "vitest": "^5.0.1"
+    "@observablehq/notebook-kit": "catalog:",
+    "@statewalker/db-api": "catalog:",
+    "@statewalker/db-duckdb-browser": "catalog:",
+    "@statewalker/webrun-files": "catalog:",
+    "@statewalker/webrun-files-mem": "catalog:",
+    "@statewalker/webrun-files-node": "catalog:",
+    "@statewalker/webrun-modules": "catalog:",
+    "esbuild": "catalog:",
+    "playwright": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "sideEffects": false,
   "publishConfig": {
