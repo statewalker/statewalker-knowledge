@@ -1,5 +1,5 @@
-import type { PubSub } from "@statewalker/notebook-events";
 import type { FilesApi } from "@statewalker/webrun-files";
+import type { PubSub } from "@statewalker/webrun-http-events";
 import { SiteBuilder, type SiteHandler } from "@statewalker/webrun-site-builder";
 import { withDecodedPaths } from "./decode-path.js";
 

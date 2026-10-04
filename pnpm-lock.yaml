@@ -24,9 +24,6 @@ catalogs:
     '@statewalker/db-duckdb-browser':
       specifier: ^0.1.1
       version: 0.1.2
-    '@statewalker/notebook-events':
-      specifier: ^0.1.0
-      version: 0.1.0
     '@statewalker/webrun-files':
       specifier: ^0.10.0
       version: 0.10.1
@@ -39,6 +36,9 @@ catalogs:
     '@statewalker/webrun-http-browser':
       specifier: ^0.6.0
       version: 0.6.2
+    '@statewalker/webrun-http-events':
+      specifier: ^0.1.0
+      version: 0.1.0
     '@statewalker/webrun-modules':
       specifier: ^0.3.0
       version: 0.3.2
@@ -223,12 +223,12 @@ importers:
 
   packages/notebook-site:
     dependencies:
-      '@statewalker/notebook-events':
-        specifier: 'catalog:'
-        version: 0.1.0
       '@statewalker/webrun-files':
         specifier: catalog:peers
         version: 0.10.1
+      '@statewalker/webrun-http-events':
+        specifier: 'catalog:'
+        version: 0.1.0
       '@statewalker/webrun-site-builder':
         specifier: catalog:peers
         version: 0.2.1(@statewalker/webrun-files@0.10.1)
@@ -838,9 +838,6 @@ packages:
   '@statewalker/db-duckdb-browser@0.1.2':
     resolution: {integrity: sha512-wYiKdM3JEPd70u34vqPGU0jiDl+zZfHT+5k7l/V2teiGJRShYcvxDXbTHvkfCtqEpkf1EBk9KRdAuV6anJF4fQ==}
 
-  '@statewalker/notebook-events@0.1.0':
-    resolution: {integrity: sha512-a7NKpvNvDWZB1JjnGm+cLl5iD1vG8byJI7U9QtUKzWjHR4aGN2HBigvPOVVj9xu5jtyjWiVR4Ky1svQXXhIRXw==}
-
   '@statewalker/webrun-builder@0.2.0':
     resolution: {integrity: sha512-JxWBE7IiFHAvdqY6eKS35UaC7P5lWJNc/hDd7Rc5hh7FW6QgroRL9AT+5SSJPOnAMPDKcASlKOiK54dyEqtWqQ==}
 
@@ -858,6 +855,9 @@ packages:
 
   '@statewalker/webrun-http-browser@0.6.2':
     resolution: {integrity: sha512-JzvPffTu7cJ4BKiqd0oE8+tMNmbD1jAa2n/iHZDmiQKQYMdqd3hmX+/BIyIffGVI46MTYPxcQHgydDHIW9a5Qg==}
+
+  '@statewalker/webrun-http-events@0.1.0':
+    resolution: {integrity: sha512-2hfZTxjuU1n7Ms82c9ogEeBYHZNYa2+Gvwi95VkUxg9G/KWg/8jBQq4raJaMb3zgdqUMrWXiqYj1ngtnK+y1gw==}
 
   '@statewalker/webrun-http-streams@0.2.4':
     resolution: {integrity: sha512-GnWD2PflO1b33y2NCwqoqUThB7vzbMTlFSWs+cBGfkcYycws3JlQ6INaxpHrriYuXGB3a/Flq69XVdHlyJwLaw==}
@@ -2629,8 +2629,6 @@ snapshots:
       '@duckdb/duckdb-wasm': 1.33.1-dev57.0
       '@statewalker/db-api': 0.1.2
 
-  '@statewalker/notebook-events@0.1.0': {}
-
   '@statewalker/webrun-builder@0.2.0':
     dependencies:
       '@statewalker/webrun-dataflow': 0.1.2
@@ -2654,6 +2652,8 @@ snapshots:
       '@statewalker/webrun-rpc': 0.4.2
       '@statewalker/webrun-streams': 0.2.1
       idb-keyval: 6.3.0
+
+  '@statewalker/webrun-http-events@0.1.0': {}
 
   '@statewalker/webrun-http-streams@0.2.4':
     dependencies:

@@ -1,6 +1,6 @@
 {
   "name": "@statewalker/notebook-site",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "type": "module",
   "description": "Compose a SiteHandler serving a built notebook site: pages, module dependencies and the rebuild event stream.",
@@ -24,7 +24,7 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test-browser.json"
   },
   "dependencies": {
-    "@statewalker/notebook-events": "catalog:"
+    "@statewalker/webrun-http-events": "catalog:"
   },
   "peerDependencies": {
     "@statewalker/webrun-files": "catalog:peers",

@@ -18,7 +18,7 @@
 // Drives a real Chromium tab (via Playwright) against a real SW registered by
 // `@statewalker/webrun-site-host`'s `HostedSiteBuilder`, using `@statewalker/webrun-http-browser`'s
 // own published `sw-worker.js` — nothing here is faked. Reuses the fixture-server pattern from
-// `packages/notebook-events/test-browser/` rather than inventing a second one; one page for the
+// `packages/webrun-http-events/test-browser/` rather than inventing a second one; one page for the
 // whole suite, exactly as that package does (registering the same site key twice from two
 // different page instances is untested territory this file has no reason to explore).
 //
