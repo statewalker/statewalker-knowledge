@@ -24,28 +24,27 @@
     "test:browser": "pnpm --filter @statewalker/notebook-db run build && vitest run test-browser --config vitest.browser.config.ts"
   },
   "dependencies": {
-    "@observablehq/notebook-kit": "^2.6.4",
+    "@observablehq/notebook-kit": "catalog:",
     "markdown-it": "catalog:"
   },
   "devDependencies": {
     "@duckdb/duckdb-wasm": "catalog:",
-    "@statewalker/db-duckdb-browser": "workspace:*",
-    "@statewalker/notebook-db": "workspace:*",
-    "@statewalker/webrun-files-mem": "workspace:*",
-    "@statewalker/webrun-files-node": "workspace:*",
+    "@statewalker/db-duckdb-browser": "catalog:",
+    "@statewalker/notebook-db": "workspace:^",
+    "@statewalker/webrun-files-mem": "catalog:",
+    "@statewalker/webrun-files-node": "catalog:",
     "@types/jsdom": "catalog:",
-    "@types/markdown-it": "catalog:",
-    "esbuild": "^0.28.2",
+    "esbuild": "catalog:",
     "jsdom": "catalog:",
-    "playwright": "^1.63.0",
-    "tsdown": "^0.23.0",
-    "typescript": "^7.0.2",
-    "vitest": "^5.0.1"
+    "playwright": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "peerDependencies": {
-    "@statewalker/webrun-builder": "workspace:*",
-    "@statewalker/webrun-files": "workspace:*",
-    "@statewalker/webrun-modules": "workspace:*"
+    "@statewalker/webrun-builder": "catalog:peers",
+    "@statewalker/webrun-files": "catalog:peers",
+    "@statewalker/webrun-modules": "catalog:peers"
   },
   "sideEffects": false,
   "publishConfig": {

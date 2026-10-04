@@ -1,3 +1,35 @@
 packages:
   - packages/*
   - apps/*
+
+catalog:
+  "@biomejs/biome": "^2.5.15"
+  "@changesets/cli": "^3.0.3"
+  "@observablehq/notebook-kit": "^2.6.6"
+  "@statewalker/db-api": "^0.1.1"
+  "@statewalker/db-duckdb-browser": "^0.1.1"
+  "@statewalker/notebook-events": "^0.1.0"
+  "@statewalker/webrun-files": "^0.10.0"
+  "@statewalker/webrun-files-mem": "^0.10.0"
+  "@statewalker/webrun-files-node": "^0.10.0"
+  "@statewalker/webrun-http-browser": "^0.6.0"
+  "@statewalker/webrun-modules": "^0.3.0"
+  "@statewalker/webrun-site-host": "^0.2.1"
+  "@types/node": "^26.6.4"
+  "esbuild": "^0.28.2"
+  "playwright": "^1.63.0"
+  "tsdown": "^0.23.0"
+  "typescript": "^7.0.2"
+  "vitest": "^5.0.3"
+  "@duckdb/duckdb-wasm": ^1.33.1-dev57.0
+  "@types/jsdom": ^30.0.0
+  jsdom: ^30.1.1
+  markdown-it: ^15.0.2
+
+catalogs:
+  peers:
+    "@statewalker/db-api": "^0.1.1"
+    "@statewalker/webrun-builder": "^0.1.1 || ^0.2.0"
+    "@statewalker/webrun-files": "^0.10.0"
+    "@statewalker/webrun-modules": "^0.2.1 || ^0.3.0"
+    "@statewalker/webrun-site-builder": "^0.2.0"
