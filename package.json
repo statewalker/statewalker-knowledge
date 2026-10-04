@@ -22,5 +22,13 @@
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
-  "version": ""
+  "version": "",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/statewalker/statewalker-knowledge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/statewalker/statewalker-knowledge/issues"
+  },
+  "homepage": "https://github.com/statewalker/statewalker-knowledge#readme"
 }

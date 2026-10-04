@@ -4,6 +4,15 @@
   "private": true,
   "type": "module",
   "description": "Build the notebooks in ./notebooks and serve them. Not published.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/statewalker/statewalker-knowledge.git",
+    "directory": "apps/demo"
+  },
+  "bugs": {
+    "url": "https://github.com/statewalker/statewalker-knowledge/issues"
+  },
+  "homepage": "https://github.com/statewalker/statewalker-knowledge/tree/main/apps/demo#readme",
   "scripts": {
     "start": "pnpm --filter @statewalker/notebook-build --filter @statewalker/notebook-site run build && node serve.mjs"
   },
