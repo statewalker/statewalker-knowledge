@@ -4,6 +4,15 @@
   "private": false,
   "type": "module",
   "description": "Build notebooks from a FilesApi into a static site of executable notebook pages.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/statewalker/statewalker-knowledge.git",
+    "directory": "packages/notebook-build"
+  },
+  "bugs": {
+    "url": "https://github.com/statewalker/statewalker-knowledge/issues"
+  },
+  "homepage": "https://github.com/statewalker/statewalker-knowledge/tree/main/packages/notebook-build#readme",
   "license": "MIT",
   "exports": {
     ".": {

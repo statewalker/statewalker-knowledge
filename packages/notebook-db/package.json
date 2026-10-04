@@ -4,6 +4,15 @@
   "private": false,
   "type": "module",
   "description": "Back notebook-kit SQL cells with any @statewalker/db-api database.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/statewalker/statewalker-knowledge.git",
+    "directory": "packages/notebook-db"
+  },
+  "bugs": {
+    "url": "https://github.com/statewalker/statewalker-knowledge/issues"
+  },
+  "homepage": "https://github.com/statewalker/statewalker-knowledge/tree/main/packages/notebook-db#readme",
   "license": "MIT",
   "exports": {
     ".": {

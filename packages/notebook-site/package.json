@@ -4,6 +4,15 @@
   "private": false,
   "type": "module",
   "description": "Compose a SiteHandler serving a built notebook site: pages, module dependencies and the rebuild event stream.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/statewalker/statewalker-knowledge.git",
+    "directory": "packages/notebook-site"
+  },
+  "bugs": {
+    "url": "https://github.com/statewalker/statewalker-knowledge/issues"
+  },
+  "homepage": "https://github.com/statewalker/statewalker-knowledge/tree/main/packages/notebook-site#readme",
   "license": "MIT",
   "exports": {
     ".": {
