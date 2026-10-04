@@ -1,8 +1,8 @@
 // Fixture HTTP server for the browser test. Plain `node:http` on localhost — that is a secure
 // context, so `navigator.serviceWorker.register` works without TLS. Reuses the exact pattern
-// from `packages/notebook-events/test-browser/server.ts` rather than inventing a second one.
+// from `packages/webrun-http-events/test-browser/server.ts` rather than inventing a second one.
 //
-// `fixture/main.ts` is TypeScript and imports both bare specifiers (`@statewalker/notebook-events`,
+// `fixture/main.ts` is TypeScript and imports both bare specifiers (`@statewalker/webrun-http-events`,
 // `@statewalker/webrun-files`, `@statewalker/webrun-files-mem`, `@statewalker/webrun-site-host`)
 // and package-relative source (`../../src/site.ts`), so it cannot be served as-is. It is bundled
 // with esbuild's `build()` API (bundle: true, platform: "browser") once, at server start, rather

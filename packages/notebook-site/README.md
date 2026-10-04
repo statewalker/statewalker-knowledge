@@ -3,7 +3,7 @@
 Composes one [`SiteHandler`](https://github.com/statewalker/webrun-wire) that serves a site built
 by [`@statewalker/notebook-build`](../notebook-build): pages and attachments from a `FilesApi`,
 module dependencies from a live module server, and the rebuild stream from
-[`@statewalker/notebook-events`](../notebook-events).
+[`@statewalker/webrun-http-events`](../notebook-events).
 
 It owns the composition and nothing else — no routing of its own, no build, no transport. The
 same handler runs under Node, in a Worker, and behind a browser ServiceWorker.
@@ -20,7 +20,7 @@ import { newNotebookSite, primeModules } from "@statewalker/notebook-site";
 const handler = newNotebookSite({
   output,       // FilesApi: what notebook-build wrote
   moduleServer, // hosted mode only — omit for a static export
-  events,       // PubSub from @statewalker/notebook-events — omit for no event stream
+  events,       // PubSub from @statewalker/webrun-http-events — omit for no event stream
   basePath: "/_m/",
   eventsPath: "/_events",
 });

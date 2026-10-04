@@ -9,9 +9,10 @@
 // it over a `MessagePort`. This module — and therefore `newNotebookSite` — runs in THIS page.
 // The handler crossing the SW request path unchanged is the claim; worker-scope execution is
 // not, and the DOM-free `lib` in `tsconfig.json` is a compile-time guard, not runtime proof.
-import { newPubSub } from "@statewalker/notebook-events";
+
 import { writeText } from "@statewalker/webrun-files";
 import { MemFilesApi } from "@statewalker/webrun-files-mem";
+import { newPubSub } from "@statewalker/webrun-http-events";
 import { HostedSiteBuilder } from "@statewalker/webrun-site-host";
 import { newNotebookSite } from "../../src/site.js";
 

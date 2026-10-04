@@ -1,7 +1,7 @@
-import { newPubSub } from "@statewalker/notebook-events";
 import type { FilesApi } from "@statewalker/webrun-files";
 import { writeText } from "@statewalker/webrun-files";
 import { MemFilesApi } from "@statewalker/webrun-files-mem";
+import { newPubSub } from "@statewalker/webrun-http-events";
 import { describe, expect, it, vi } from "vitest";
 import { newNotebookSite } from "./site.js";
 

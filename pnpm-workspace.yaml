@@ -8,7 +8,7 @@ catalog:
   "@observablehq/notebook-kit": "^2.6.6"
   "@statewalker/db-api": "^0.1.1"
   "@statewalker/db-duckdb-browser": "^0.1.1"
-  "@statewalker/notebook-events": "^0.1.0"
+  "@statewalker/webrun-http-events": "^0.1.0"
   "@statewalker/webrun-files": "^0.10.0"
   "@statewalker/webrun-files-mem": "^0.10.0"
   "@statewalker/webrun-files-node": "^0.10.0"
