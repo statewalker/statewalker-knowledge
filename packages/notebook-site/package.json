@@ -1,6 +1,6 @@
 {
   "name": "@statewalker/notebook-site",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": false,
   "type": "module",
   "description": "Compose a SiteHandler serving a built notebook site: pages, module dependencies and the rebuild event stream.",
