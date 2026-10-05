@@ -8,14 +8,31 @@ function as a database source; it never has to know about db-api. This package s
 object.
 
 ```sh
-npm install @statewalker/notebook-db
+pnpm add @statewalker/notebook-db @statewalker/db-api @statewalker/webrun-files
 ```
+
+`@statewalker/db-api` and `@statewalker/webrun-files` are peer dependencies. You also need a
+db-api driver, for example `@statewalker/db-duckdb-node` or `@statewalker/db-duckdb-browser`.
+
+## Entry point
+
+One entry point, `@statewalker/notebook-db` (ESM, built to `dist/`, with the TypeScript sources
+in `src/`). It works in the browser and under Node; which one depends on the driver you pass in.
+
+| export | what it does |
+| --- | --- |
+| `newDbClient(db)` | Wraps a db-api `Db` as a `NotebookDbClient` (`sql`, `query`, `close`). |
+| `newLiveDatabases({ open })` | A registry that opens databases by name on first use (`get`, `closeAll`). |
+| `precomputeQueries(requests, databases, output)` | Runs `PrecomputeRequest`s at build time and writes notebook-kit's cache files into a `FilesApi`. Returns the paths written. |
+| `cachePathFor(notebook, database, strings, params)` | The site path where the cache file for one query on one page goes. |
+
+## Usage
 
 ```ts
 import { newDbClient } from "@statewalker/notebook-db";
-import { newDuckDb } from "@statewalker/db-duckdb-node"; // or any other db-api driver
+import { newNodeDuckDb } from "@statewalker/db-duckdb-node"; // or any other db-api driver
 
-const db = await newDuckDb();
+const db = await newNodeDuckDb();
 const client = newDbClient(db);
 
 // Tagged-template form, the shape a notebook SQL cell compiles to:
@@ -38,7 +55,7 @@ notebook needs a `db` variable holding something with a `sql` tagged template â€
 import { newLiveDatabases } from "@statewalker/notebook-db";
 import { newBrowserDuckDb } from "@statewalker/db-duckdb-browser";
 
-const databases = newLiveDatabases({ open: () => newBrowserDuckDb({ bundles }) });
+const databases = newLiveDatabases({ open: (name) => newBrowserDuckDb({ bundles }) });
 
 // in the notebook's own js cell:
 const db = await databases.get("warehouse");
@@ -81,6 +98,26 @@ Nested `LIST` and `STRUCT` values are converted too; `Date`, `Uint8Array` and an
 carrying its own prototype is left untouched.
 
 ## The precomputed cache file
+
+```ts
+import { newDbClient, precomputeQueries } from "@statewalker/notebook-db";
+
+const written = await precomputeQueries(
+  [
+    {
+      notebook: "/reports/q3.html", // the page the cell lives on
+      database: "warehouse",
+      strings: ["SELECT * FROM sales WHERE year = ", ""],
+      params: [2026],
+    },
+  ],
+  new Map([["warehouse", newDbClient(db)]]),
+  output, // FilesApi of the built site
+);
+// written[0] === "/reports/.observable/cache/<nameHash>-<hash>.json"
+```
+
+`@statewalker/notebook-build` does not create these requests; the caller assembles them.
 
 `precomputeQueries` writes each query's result at the page-relative path notebook-kit's
 `DatabaseClient.sql()` fetches, and writes it as the `{rows, schema}` envelope that client

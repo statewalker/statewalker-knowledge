@@ -1,26 +1,39 @@
 # @statewalker/notebook-site
 
-Composes one [`SiteHandler`](https://github.com/statewalker/webrun-wire) that serves a site built
-by [`@statewalker/notebook-build`](../notebook-build): pages and attachments from a `FilesApi`,
-module dependencies from a live module server, and the rebuild stream from
-[`@statewalker/webrun-http-events`](../notebook-events).
+Composes one `SiteHandler` (from
+[`@statewalker/webrun-site-builder`](https://github.com/statewalker/webrun-sites)) that serves a
+site built by [`@statewalker/notebook-build`](../notebook-build): pages and attachments from a
+`FilesApi`, module dependencies from a live module server, and the rebuild stream from
+[`@statewalker/webrun-http-events`](https://github.com/statewalker/webrun-wire).
 
 It owns the composition and nothing else — no routing of its own, no build, no transport. The
 same handler runs under Node, in a Worker, and behind a browser ServiceWorker.
 
 ```sh
-npm install @statewalker/notebook-site
+pnpm add @statewalker/notebook-site @statewalker/webrun-files @statewalker/webrun-site-builder
 ```
+
+`@statewalker/webrun-files` and `@statewalker/webrun-site-builder` are peer dependencies.
+
+## Entry point
+
+One entry point, `@statewalker/notebook-site` (ESM, built to `dist/`, with the TypeScript
+sources in `src/`). It exports `newNotebookSite` (with `NotebookSiteOptions`) and
+`primeModules` (with `ModuleRef`, `PrimedModule`, `PrimeResult`).
 
 ## Usage
 
 ```ts
 import { newNotebookSite, primeModules } from "@statewalker/notebook-site";
 
+import { newPubSub } from "@statewalker/webrun-http-events";
+
+const events = newPubSub();
+
 const handler = newNotebookSite({
   output,       // FilesApi: what notebook-build wrote
   moduleServer, // hosted mode only — omit for a static export
-  events,       // PubSub from @statewalker/webrun-http-events — omit for no event stream
+  events,       // omit for no event stream
   basePath: "/_m/",
   eventsPath: "/_events",
 });
@@ -64,6 +77,7 @@ filename may legitimately contain one.
 ## Priming
 
 ```ts
+// moduleServer: anything with prime(ref), e.g. @statewalker/webrun-modules' newModuleServer
 const { primed, failed } = await primeModules(moduleServer, [
   { pkg: "d3", version: "7" },
   { pkg: "katex", version: "0.16", subpath: "dist/katex.mjs" },

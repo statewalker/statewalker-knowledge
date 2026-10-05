@@ -9,8 +9,17 @@ document. Each one becomes an `.html` page that imports notebook-kit's runtime a
 cell graph in the browser.
 
 ```sh
-npm install @statewalker/notebook-build
+pnpm add @statewalker/notebook-build @statewalker/webrun-builder @statewalker/webrun-files @statewalker/webrun-modules
 ```
+
+`@statewalker/webrun-builder`, `@statewalker/webrun-files` and `@statewalker/webrun-modules` are
+peer dependencies. `@observablehq/notebook-kit` and `markdown-it` are regular dependencies.
+
+## Entry point
+
+The package has one entry point, `@statewalker/notebook-build` (ESM, built to `dist/`, with the
+TypeScript sources in `src/`). It reads no DOM global, so it runs under Node (with jsdom passed in
+as `dom`) and in a browser (with the native `document` and `DOMParser`).
 
 ## Usage
 
@@ -24,7 +33,7 @@ const build = newNotebookBuild({
   moduleServer,               // @statewalker/webrun-modules
   dom: { document, parser },  // jsdom under Node; the natives in a browser
   mode: "static",
-  stylesUrl: "/_m/@observablehq/notebook-kit@2.6.4/dist/src/styles/index.css",
+  stylesUrl: "/_m/@observablehq/notebook-kit@2.6.6/dist/src/styles/index.css",
   onRebuilt: (changed) => deploy(changed),
   onFailed: (failures) => failures.forEach((f) => console.error(f.notebookPath, f.error)),
 });
@@ -45,7 +54,8 @@ await build.build();
 | `basePath` | URL prefix the module server serves packages under (default `/_m/`). |
 | `stylesUrl` | Stylesheet the pages link. Unset, the pages carry no styles at all. |
 | `onRebuilt` | Called once per converged build with every output path that changed — page, attachments and closure. |
-| `onFailed` | Called once per converged build with the notebooks that failed. One bad notebook never stops the others. |
+| `onFailed` | Called once per converged build with the notebooks that failed (`NotebookFailure[]`: `{ notebookPath, error }`). One bad notebook never stops the others. |
+| `logger` | A `Logger` from `@statewalker/webrun-builder`. Defaults to a no-op logger. |
 
 The three `FilesApi` instances must be three distinct directories. The build writes a hidden
 probe file to prove it, because two handles on one directory would feed the build's own output
@@ -73,8 +83,8 @@ HTML source can carry them — a Markdown fence has no syntax for an attribute.
   a notebook at `/reports/q3.html` reads `/reports/.observable/cache/…`. Writing those files is
   `@statewalker/notebook-db`'s `precomputeQueries`.
 
-A Markdown ` ```sql ` fence is therefore a cell with NEITHER attribute, and since `ca27d82`
-that is a live cell, not prose: it compiles to ``DatabaseClient.of(db, "db").sql`…` `` against
+A Markdown ` ```sql ` fence is therefore a cell with NEITHER attribute, and it is a live cell,
+not prose: it compiles to ``DatabaseClient.of(db, "db").sql`…` `` against
 the notebook's own `db` variable (the `database` default), and with no `output` it is
 anonymous — it runs and displays its result, and nothing downstream can name its rows. A
 notebook that wants to reference the rows, or to query anything other than `db`, needs a
@@ -148,3 +158,27 @@ This package has NO build-time database wiring of any kind — not a stub, not a
 `precomputeQueries`, which writes exactly those files, but a caller must assemble the requests
 and run it itself. Only the live path (`database="var:db"`, the Markdown fence default) works
 end to end from a build alone.
+
+## Lower-level API
+
+`newNotebookBuild` is the main entry. The stages it is made of are exported too:
+
+| export | what it does |
+| --- | --- |
+| `parseMarkdown(source)` | Markdown source to a notebook-kit `Notebook`. |
+| `parseNotebookHtml(html, dom)` | notebook-kit HTML document to a `Notebook`. |
+| `serializeNotebook(nb, dom)`, `notebookHash(html)` | Serialize a `Notebook` to notebook-kit HTML; hash that HTML. |
+| `collectSpecifiers(nb)`, `isNpmSpecifier(s)`, `toModuleRef(s)` | Find the import specifiers of a notebook and turn `npm:` ones into module refs. |
+| `resolveNotebook(nb, { moduleServer }, notebookPath)` | Resolve every npm import to a pinned URL (`PinMap`). Throws `ResolveError`. |
+| `transpileNotebook(nb, pins)` | Compile code cells to `CellDefinition[]`. |
+| `renderPage(nb, cells, { runtimeUrl, stylesUrl })` | Render the page HTML. |
+| `copyAttachments(nb, source, output, notebookPath)` | Copy the `FileAttachment`s a notebook references; returns `CopiedAttachment[]`. |
+| `materializeDeps(pins, server, output, basePath)`, `ASSET_EXTENSIONS` | Write the static dependency closure into `output`. |
+
+`ModuleServerLike` is the shape the build needs from a module server (`resolve`,
+`listResources`, `listPackageFiles`, `fetch`); `@statewalker/webrun-modules`' `newModuleServer`
+provides it.
+
+## License
+
+MIT
