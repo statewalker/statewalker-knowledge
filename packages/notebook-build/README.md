@@ -1,183 +1,216 @@
 # @statewalker/notebook-build
 
-Turns a tree of notebooks on a [`FilesApi`](https://github.com/statewalker/webrun-files) into a
-static site of executable pages, incrementally.
+## What it is
 
-A notebook is a Markdown file (fenced `js`/`ts`/`ojs`/`sql` blocks become cells, everything else
-is prose) or an [Observable notebook-kit](https://github.com/observablehq/notebook-kit) HTML
-document. Each one becomes an `.html` page that imports notebook-kit's runtime and runs its own
-cell graph in the browser.
+Turns a tree of notebooks on a `FilesApi` (`@statewalker/webrun-files`) into a static site of
+executable pages, incrementally. A notebook is a Markdown file (fenced `js`/`ts`/`ojs`/`sql`
+blocks become cells, everything else is prose) or an
+[Observable notebook-kit](https://github.com/observablehq/notebook-kit) HTML document. Each one
+becomes an `.html` page that imports notebook-kit's runtime and runs its own cell graph in the
+browser.
+
+## Why it exists
+
+notebook-kit ships a Vite plugin for building notebooks. This package builds them over
+`FilesApi` instead, with no bundler and no DOM global, so a build can run under Node or in a
+browser against any `FilesApi` backend. npm imports are resolved through a module
+server and served from the site's own origin, so a built page makes no third-party requests.
+The build is incremental: a run re-derives only the notebooks whose inputs changed.
+
+## How to use
 
 ```sh
 pnpm add @statewalker/notebook-build @statewalker/webrun-builder @statewalker/webrun-files @statewalker/webrun-modules
 ```
 
 `@statewalker/webrun-builder`, `@statewalker/webrun-files` and `@statewalker/webrun-modules` are
-peer dependencies. `@observablehq/notebook-kit` and `markdown-it` are regular dependencies.
+peer dependencies. There is one entry point, `@statewalker/notebook-build` (ESM).
 
-## Entry point
-
-The package has one entry point, `@statewalker/notebook-build` (ESM, built to `dist/`, with the
-TypeScript sources in `src/`). It reads no DOM global, so it runs under Node (with jsdom passed in
-as `dom`) and in a browser (with the native `document` and `DOMParser`).
-
-## Usage
-
-```ts
-import { newNotebookBuild } from "@statewalker/notebook-build";
-
-const build = newNotebookBuild({
-  notebooks, // FilesApi: the sources
-  output,    // FilesApi: the site
-  cache,     // FilesApi: the build's own state
-  moduleServer,               // @statewalker/webrun-modules
-  dom: { document, parser },  // jsdom under Node; the natives in a browser
-  mode: "static",
-  stylesUrl: "/_m/@observablehq/notebook-kit@2.6.6/dist/src/styles/index.css",
-  onRebuilt: (changed) => deploy(changed),
-  onFailed: (failures) => failures.forEach((f) => console.error(f.notebookPath, f.error)),
-});
-
-await build.build();
-```
-
-`build()` runs to convergence and returns. Call it again to pick up changes.
+Create a build with `newNotebookBuild(options)` and call `build()`. `build()` runs to
+convergence and returns; call it again to pick up changes.
 
 | option | meaning |
 | --- | --- |
 | `notebooks` | Source tree. Scanned recursively; `.md` and `.html` are notebooks, everything else is data. |
 | `output` | Where pages, attachments and (in static mode) the dependency closure are written. |
 | `cache` | Where the serialized-notebook artifacts and the incremental state live. |
-| `moduleServer` | Resolves and serves npm packages — `@statewalker/webrun-modules`. |
+| `moduleServer` | Resolves and serves npm packages (`ModuleServerLike`: `resolve`, `listResources`, `listPackageFiles`, `fetch`). `newModuleServer` from `@statewalker/webrun-modules` provides it. |
 | `dom` | A `document` and a `DOMParser`. Nothing in this package reads a DOM global. |
 | `mode` | `"static"` (default) materializes the whole dependency closure into `output`; `"hosted"` leaves it to a live module server. |
 | `basePath` | URL prefix the module server serves packages under (default `/_m/`). |
 | `stylesUrl` | Stylesheet the pages link. Unset, the pages carry no styles at all. |
-| `onRebuilt` | Called once per converged build with every output path that changed — page, attachments and closure. |
-| `onFailed` | Called once per converged build with the notebooks that failed (`NotebookFailure[]`: `{ notebookPath, error }`). One bad notebook never stops the others. |
+| `onRebuilt` | Called once per converged build with every output path that changed: page, attachments and closure. |
+| `onFailed` | Called once per converged build with `NotebookFailure[]` (`{ notebookPath, error }`). One bad notebook never stops the others. |
 | `logger` | A `Logger` from `@statewalker/webrun-builder`. Defaults to a no-op logger. |
 
-The three `FilesApi` instances must be three distinct directories. The build writes a hidden
-probe file to prove it, because two handles on one directory would feed the build's own output
-back in as sources.
+## Examples
 
-## Cell modes
+### Build a directory of notebooks under Node
 
-`js`, `ts`, `ojs` and `sql` cells are compiled and run in the page; every other mode renders as
-prose.
+```ts
+import { newNotebookBuild } from "@statewalker/notebook-build";
+import { NodeFilesApi } from "@statewalker/webrun-files-node";
+import { newModuleServer } from "@statewalker/webrun-modules";
+import { JSDOM } from "jsdom";
 
-### SQL cells
+const notebooks = new NodeFilesApi({ rootDir: "./notebooks" });
+const output = new NodeFilesApi({ rootDir: "./.out" });
+const cache = new NodeFilesApi({ rootDir: "./.cache/build" });
+const moduleServer = newModuleServer({
+  cache: new NodeFilesApi({ rootDir: "./.cache/modules" }),
+  basePath: "/_m/",
+});
 
-A SQL cell's `database` and `output` attributes are what make it work, and only a notebook-kit
-HTML source can carry them — a Markdown fence has no syntax for an attribute.
+const { window } = new JSDOM("<!doctype html>");
 
-`database` picks the mode, and the two are notebook-kit's, not this package's:
+const build = newNotebookBuild({
+  notebooks,
+  output,
+  cache,
+  moduleServer,
+  dom: { document: window.document, parser: new window.DOMParser() },
+  mode: "static",
+  stylesUrl: "/_m/@observablehq/notebook-kit@2.6.6/dist/src/styles/index.css",
+  onRebuilt: (changed) => console.log("changed", changed),
+  onFailed: (failures) => failures.forEach((f) => console.error(f.notebookPath, f.error)),
+});
 
-- `database="var:db"` (the default) is **live**: the cell compiles to
-  ``DatabaseClient.of(db, "db").sql`…` `` and queries whatever the notebook's own `db` variable
-  is. Any object with a `sql` tagged-template function will do — for instance a
-  [`@statewalker/notebook-db`](https://www.npmjs.com/package/@statewalker/notebook-db) client
-  over a `@statewalker/db-api` `Db`.
-- `database="warehouse"` is **precomputed**: notebook-kit's client runs no SQL at all. It
-  fetches `.observable/cache/<nameHash>-<hash>.json`, and that path is relative to the PAGE, so
-  a notebook at `/reports/q3.html` reads `/reports/.observable/cache/…`. Writing those files is
-  `@statewalker/notebook-db`'s `precomputeQueries`.
+await build.build();
+```
 
-A Markdown ` ```sql ` fence is therefore a cell with NEITHER attribute, and it is a live cell,
-not prose: it compiles to ``DatabaseClient.of(db, "db").sql`…` `` against
-the notebook's own `db` variable (the `database` default), and with no `output` it is
-anonymous — it runs and displays its result, and nothing downstream can name its rows. A
-notebook that wants to reference the rows, or to query anything other than `db`, needs a
-notebook-kit HTML source. Measured against notebook-kit 2.6.4, a bare `sql` cell transpiles to
-`inputs: ["DatabaseClient", "db"]`, `outputs: []`, no singular `output` and `autodisplay:
-true` — a consumer of a `db` variable the notebook must define elsewhere, and a producer of
-nothing.
+In a browser, pass `{ document, parser: new DOMParser() }` and any browser `FilesApi`.
 
-`output="revenue"` exposes the cell's rows to the rest of the notebook. It is notebook-kit's
-*singular* output — `outputs` stays empty for a SQL cell — and two cells claiming one name fail
-the build exactly as two `const x` cells do.
+### Use the stages directly
 
-SQL results render through notebook-kit's default inspector. notebook-kit's own Vite plugin
-uses `displayMode: "table"` instead; this package does not, because that display path is
-`import("…/stdlib/inputs.js")`, whose first line imports `@observablehq/inputs` from jsDelivr.
+The stages `newNotebookBuild` is made of are exported too:
 
-### The modes that stay prose
+```ts
+import {
+  parseMarkdown,
+  renderPage,
+  resolveNotebook,
+  transpileNotebook,
+} from "@statewalker/notebook-build";
 
-Not "unsupported": notebook-kit's `transpile()` returns a real body for each of them. They are
-left inert because the body cannot run in a page this build produces.
-
-| mode | why |
-| --- | --- |
-| `html`, `tex`, `dot`, `sql.view` | need the `htl`, `tex`, `dot` and `Inputs` builtins, each of which notebook-kit loads from `cdn.jsdelivr.net`. A static export that reaches a CDN is not a static export. |
-| `node`, `python`, `r` | are data-loader cells: `Interpreter(…).run(src)` fetches `.observable/cache/<hash>.bin`, an artifact a build-time interpreter stage produces. This build has none, so every such cell would 404 — worse than rendering inert. |
-| `md` | is rendered at build time with markdown-it, into the document body, so prose is readable with JavaScript off. |
-
-## What is published
-
-For `/reports/q3.md`:
-
-- `/reports/q3.html` — the page: one root element per cell, one `define()` per code cell.
-- every `FileAttachment("…")` it references, copied to the same relative path — including one
-  inside a `sql` cell's `${…}` interpolation, which notebook-kit compiles as JavaScript like
-  any other cell's. An attachment that resolves outside the notebook's own directory is
-  refused.
-- in static mode, the dependency closure under `basePath`: every JS-reachable module, plus two
-  kinds of file the JS graph never imports and a closure built from it alone would therefore
-  miss (such an export looks perfect and dies at the first wasm instantiation):
-  - the `.wasm`, `.css` and font files a package ships;
-  - the classic worker scripts it ships (`*.worker.js`, and not their `.map` siblings). These
-    are fetched with `?raw` so the module server's CJS→ESM transform cannot wrap them —
-    duckdb-wasm's worker bundles are UMD, and a classic worker cannot parse the `import`/
-    `export` a wrapped one would contain. The `?raw` is on the fetch only: the file is written
-    at its plain `.worker.js` path, so the site serves it with a JavaScript content type, which
-    is what the spec requires of a classic worker script.
-
-Deleting a notebook prunes exactly what it published, minus anything another notebook still
-claims.
-
-## Incrementality
-
-A notebook is re-derived unless everything the published page depended on is unchanged: the
-serialized notebook, the build configuration (`mode`, `basePath`, `stylesUrl`), the resolved
-pin map, the content of every attachment, and the presence of every output. A notebook with no
-recorded successful build — one that failed, transiently or not — is retried on the next run
-without needing its source touched.
-
-Two sources that would publish to the same page (`report.md` and `report.html`) are both
-reported as failures rather than one silently overwriting the other.
-
-## Status
-
-`html`, `tex`, `dot`, `sql.view`, `node`, `python` and `r` cells parse and render as inert
-prose — see "Cell modes" above for why each one is left out rather than wired up.
-
-This package has NO build-time database wiring of any kind — not a stub, not a placeholder.
-`NotebookBuildOptions` has no `databases` option, and nothing here derives a
-`PrecomputeRequest` from a parsed notebook, so a `database="warehouse"` cell's
-`.observable/cache/…json` is never written by this build. `@statewalker/notebook-db` exports
-`precomputeQueries`, which writes exactly those files, but a caller must assemble the requests
-and run it itself. Only the live path (`database="var:db"`, the Markdown fence default) works
-end to end from a build alone.
-
-## Lower-level API
-
-`newNotebookBuild` is the main entry. The stages it is made of are exported too:
+const nb = parseMarkdown("# Hello\n\n```js\nconst x = 1 + 1\n```\n");
+const pins = await resolveNotebook(nb, { moduleServer }, "/hello.md"); // npm specifier -> URL
+const cells = transpileNotebook(nb, pins);
+const html = renderPage(nb, cells, { runtimeUrl }); // runtimeUrl: notebook-kit's runtime module URL
+```
 
 | export | what it does |
 | --- | --- |
 | `parseMarkdown(source)` | Markdown source to a notebook-kit `Notebook`. |
 | `parseNotebookHtml(html, dom)` | notebook-kit HTML document to a `Notebook`. |
 | `serializeNotebook(nb, dom)`, `notebookHash(html)` | Serialize a `Notebook` to notebook-kit HTML; hash that HTML. |
-| `collectSpecifiers(nb)`, `isNpmSpecifier(s)`, `toModuleRef(s)` | Find the import specifiers of a notebook and turn `npm:` ones into module refs. |
+| `collectSpecifiers(nb)`, `isNpmSpecifier(s)`, `toModuleRef(s)` | Find a notebook's import specifiers and turn `npm:` ones into module refs. |
 | `resolveNotebook(nb, { moduleServer }, notebookPath)` | Resolve every npm import to a pinned URL (`PinMap`). Throws `ResolveError`. |
-| `transpileNotebook(nb, pins)` | Compile code cells to `CellDefinition[]`. |
+| `transpileNotebook(nb, pins)` | Compile the code cells to `CellDefinition[]`. |
 | `renderPage(nb, cells, { runtimeUrl, stylesUrl })` | Render the page HTML. |
-| `copyAttachments(nb, source, output, notebookPath)` | Copy the `FileAttachment`s a notebook references; returns `CopiedAttachment[]`. |
+| `copyAttachments(nb, source, output, notebookPath)` | Copy the `FileAttachment`s a notebook references; returns `CopiedAttachment[]` (path and hash). |
 | `materializeDeps(pins, server, output, basePath)`, `ASSET_EXTENSIONS` | Write the static dependency closure into `output`. |
 
-`ModuleServerLike` is the shape the build needs from a module server (`resolve`,
-`listResources`, `listPackageFiles`, `fetch`); `@statewalker/webrun-modules`' `newModuleServer`
-provides it.
+## Internals
+
+### What a notebook publishes
+
+For `/reports/q3.md`:
+
+- `/reports/q3.html`: the page, with one root element per cell and one `define()` per code cell.
+- every `FileAttachment("…")` it references, copied to the same relative path, including one
+  inside a `sql` cell's `${…}` interpolation, which notebook-kit compiles as JavaScript like any
+  other cell's.
+- in static mode, the dependency closure under `basePath`: every JS-reachable module, plus two
+  kinds of file the JS graph never imports. Without them the export looks complete and fails at
+  the first wasm instantiation:
+  - the `.wasm`, `.css` and font files a package ships (`ASSET_EXTENSIONS`);
+  - the classic worker scripts it ships (`*.worker.js`, not their `.map` files). These are
+    fetched with `?raw` so the module server's CJS-to-ESM transform does not wrap them: DuckDB's
+    worker bundles are UMD, and a classic worker cannot parse the `import`/`export` a wrapped
+    one would contain. The file is written at its plain `.worker.js` path, so the site serves it
+    with a JavaScript content type, as the spec requires for a classic worker script.
+
+Deleting a notebook prunes exactly what it published, minus anything another notebook still
+claims.
+
+### Why the three stores must be three directories
+
+The engine scans `notebooks`, the serialized artifacts go to `cache`, and pages go to `output`.
+If two of them were the same directory, the scanner would find the files the build just wrote
+and feed them back in as sources, and the site would publish the build's own cache. The
+constructor rejects one instance passed twice; the first `build()` also writes a hidden probe
+file into `cache` and `output` and looks for it in the others, because two `FilesApi` instances
+can point at one directory. Overlap deeper down (an `output` rooted inside the notebooks tree)
+is not detected.
+
+### What makes a page rebuild
+
+A notebook is re-derived unless everything its published page depended on is unchanged: the
+serialized notebook (compared by content hash, so a touched file with identical bytes is
+reused), the build configuration (`mode`, `basePath`, `stylesUrl`), the resolved pin map, the
+content of every attachment, and the presence of every output. A notebook with no recorded
+successful build is retried on the next run without its source being touched.
+
+### Cell modes
+
+`js`, `ts`, `ojs` and `sql` cells are compiled and run in the page. The other modes render as
+inert prose, because their compiled body cannot run in a page this build produces:
+
+| mode | why it stays prose |
+| --- | --- |
+| `html`, `tex`, `dot`, `sql.view` | They need the `htl`, `tex`, `dot` and `Inputs` builtins, which notebook-kit loads from `cdn.jsdelivr.net`. A static export must not depend on a CDN. |
+| `node`, `python`, `r` | Data-loader cells: `Interpreter(…).run(src)` fetches `.observable/cache/<hash>.bin`, produced by a build-time interpreter stage this build does not have. Every such cell would 404. |
+| `md` | Rendered at build time with markdown-it into the document body, so prose is readable with JavaScript off. |
+
+### SQL cells
+
+A SQL cell's `database` and `output` attributes decide how it runs, and only a notebook-kit HTML
+source can carry them; a Markdown fence has no attribute syntax.
+
+- `database="var:db"` (the default) is **live**: the cell compiles to
+  ``DatabaseClient.of(db, "db").sql`…` `` and queries the notebook's own `db` variable. Any
+  object with a `sql` tagged-template function works, for example a `@statewalker/notebook-db`
+  client over a `@statewalker/db-api` `Db`.
+- `database="warehouse"` is **precomputed**: notebook-kit's client runs no SQL. It fetches
+  `.observable/cache/<nameHash>-<hash>.json` relative to the page, so a notebook at
+  `/reports/q3.html` reads `/reports/.observable/cache/…`. `precomputeQueries` from
+  `@statewalker/notebook-db` writes those files.
+- `output="revenue"` exposes the cell's rows to the rest of the notebook. Two cells declaring one
+  name fail the build, as two `const x` cells do.
+
+A Markdown ` ```sql ` fence has neither attribute, so it is a live, anonymous cell: it queries
+`db`, displays its result, and nothing downstream can name its rows. The notebook must define
+`db` in another cell.
+
+SQL results render through notebook-kit's default inspector, not `displayMode: "table"`: the
+table display imports `@observablehq/inputs` from jsDelivr.
+
+### What this package does not do with databases
+
+`NotebookBuildOptions` has no database option, and nothing here turns a parsed notebook into
+`PrecomputeRequest`s. A `database="warehouse"` cell's cache file is therefore never written by
+this build; the caller must assemble the requests and run `precomputeQueries` itself. Only live
+SQL cells work from a build alone.
+
+### Failures you will see
+
+Each failure is reported through `onFailed` for its notebook; the other notebooks still build.
+
+- `` newNotebookBuild: `notebooks`, `output` and `cache` must be distinct FilesApi instances `` (thrown by the constructor)
+- `` newNotebookBuild: `cache` and `notebooks` are the same directory — they must be distinct FilesApi instances over distinct roots ``
+- `/a.md: /a.md and /a.html all publish to /a.html — rename all but one`
+- `/a.md: cannot resolve import "npm:…": …` (`ResolveError`)
+- `/a.md: attachment "…" resolves outside the notebook's own directory (/)`
+- `/a.md: cannot find attachment "data.csv" (expected at /data.csv)`
+- `/a.md: "x" is declared by two cells (cell 1 and cell 3)`
+
+### Dependencies
+
+- `@observablehq/notebook-kit`: parsing, serialization, transpilation and the page runtime.
+- `markdown-it`: renders prose cells at build time.
+- `@statewalker/webrun-builder` (peer): the incremental build engine.
+- `@statewalker/webrun-files` (peer): the storage interface.
+- `@statewalker/webrun-modules` (peer): the module server the build expects.
 
 ## License
 
