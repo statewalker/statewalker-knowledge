@@ -208,7 +208,7 @@ Each failure is reported through `onFailed` for its notebook; the other notebook
 
 - `@observablehq/notebook-kit`: parsing, serialization, transpilation and the page runtime.
 - `markdown-it`: renders prose cells at build time.
-- `@statewalker/webrun-builder` (peer, `^0.3.1`): the incremental build engine. The build is two builders over it: `Notebook` (one task per source: parse, serialize, freshness gate) and `Page` (render; its `dispose` prunes a removed notebook's outputs). The engine's state lives under `notebooks/.notebook-build/engine`.
+- `@statewalker/webrun-builder` (peer, `^0.3.1 || ^0.4.0`): the incremental build engine. The build is two builders over it: `Notebook` (one task per source: parse, serialize, freshness gate) and `Page` (render; its `dispose` prunes a removed notebook's outputs). The engine's state lives under `notebooks/.notebook-build/engine`.
 - `@statewalker/webrun-files` (peer): the storage interface.
 - `@statewalker/webrun-modules` (peer): the module server the build expects.
 
