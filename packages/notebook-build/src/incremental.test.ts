@@ -607,9 +607,9 @@ describe("newNotebookBuild — the successful-render record is written last", ()
 });
 
 /**
- * `restartFrom(NOTEBOOK_CELL)` clears the handled markers of the whole downstream closure, so
- * `[Page]` replays the `notebook` update of a notebook that has since been deleted — and its
- * `sources-removed` tombstone was consumed builds ago, so no prune will ever undo it again.
+ * Regression from the previous engine: re-driving the pipeline (`revalidate`, now
+ * `invalidate`) replayed the `notebook` update of a notebook that had since been deleted, and
+ * no prune would ever undo the page it wrote. A deleted source now retracts its row for good.
  *
  * Two builds cannot reach this: the resurrection needs a THIRD build, one where something
  * unrelated makes `revalidate` restart the pipeline. The triggers are ordinary — a new
@@ -726,5 +726,41 @@ describe("newNotebookBuild — a deleted notebook stays deleted", () => {
     await output.remove("/_m/d3@1/index.js");
     await b.build();
     expect(await output.exists("/_m/d3@1/index.js")).toBe(true);
+  });
+});
+
+describe("newNotebookBuild — overlapping builds, lost state", () => {
+  it("a build called while another runs waits for it; both report", async () => {
+    const notebooks = await seed();
+    const output = new MemFilesApi();
+    const rebuilt: string[][] = [];
+    const b = build(notebooks, output, { onRebuilt: (changed) => rebuilt.push(changed) });
+    await Promise.all([b.build(), b.build()]);
+    expect(await output.exists("/a.html")).toBe(true);
+    expect(await output.exists("/b.html")).toBe(true);
+    expect(rebuilt).toHaveLength(1); // the second build found nothing to do
+  });
+
+  it("prunes a notebook removed while the engine state was lost", async () => {
+    const notebooks = await seed();
+    const output = new MemFilesApi();
+    const cache = new MemFilesApi();
+    await build(notebooks, output, { cache }).build();
+    expect(await output.exists("/b.html")).toBe(true);
+
+    await notebooks.remove("/.notebook-build"); // the engine state is gone
+    await notebooks.remove("/b.md");
+    await build(notebooks, output, { cache }).build();
+
+    expect(await output.exists("/b.html")).toBe(false);
+    expect(await output.exists("/a.html")).toBe(true);
+  });
+
+  it("removes the state folder of the 0.2-based build", async () => {
+    const notebooks = await seed();
+    await writeText(notebooks, "/.notebook-build/state/cells.json", "{}");
+    await build(notebooks, new MemFilesApi()).build();
+    expect(await notebooks.exists("/.notebook-build/state")).toBe(false);
+    expect(await notebooks.exists("/.notebook-build/engine")).toBe(true);
   });
 });
