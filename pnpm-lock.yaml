@@ -74,7 +74,7 @@ catalogs:
       version: 5.0.3
   peers:
     '@statewalker/webrun-builder':
-      specifier: ^0.3.1
+      specifier: ^0.3.1 || ^0.4.0
       version: 0.3.1
     '@statewalker/webrun-files':
       specifier: ^0.10.0
