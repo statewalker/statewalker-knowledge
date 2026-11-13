@@ -155,6 +155,8 @@ interface Host {
   configHash: string;
   /** Memoized: the three roots are probed once per `NotebookBuild`, not once per build. */
   rootsChecked?: Promise<void>;
+  /** `pruneOrphans`, once per instance. */
+  orphansPruned?: Promise<void>;
   /**
    * `output.exists` memo for the current build. The freshness check probes every output every
    * notebook claims, and the dependency closure is SHARED: without this, fifty notebooks over a
@@ -236,10 +238,10 @@ async function assertDistinctRoots(host: Host): Promise<void> {
 /**
  * Record a failed notebook, once per build.
  *
- * One notebook can reach a stage twice in a single build — the revalidation replay and the
- * scanner's own update for the same source are two updates with two stamps — and `onFailed`
- * is a report of WHICH notebooks failed, so the same path twice is noise a CI gate would
- * double-count. The first error is the one kept: the second is the same cause seen again.
+ * One notebook can be reported twice in a single build — by the builder that failed and
+ * again from the engine's dead letters, or by [Notebook] and by [Page]'s `dispose` — and
+ * `onFailed` is a report of WHICH notebooks failed, so the same path twice is noise a CI gate
+ * would double-count. The first error is the one kept: the second is the same cause seen again.
  */
 function recordFailure(host: Host, notebookPath: string, error: unknown): void {
   if (host.failures.some((failure) => failure.notebookPath === notebookPath)) return;
@@ -412,12 +414,12 @@ async function staleReason(host: Host, uri: string, hash?: string): Promise<stri
  * Drops the recorded state of every notebook that must be re-derived, and re-drives the
  * pipeline over the whole source set when there is at least one.
  *
- * This exists because the engine's scanner is the build's only trigger and it watches exactly
- * one thing: the mtime of a source file. Everything else a page depends on — the configuration,
+ * This exists because the source scan is the build's only trigger and it sees exactly one
+ * thing: a source file's mtime and size. Everything else a page depends on — the configuration,
  * the module server's answers, an attachment's bytes, the output tree itself — can move with no
- * source touch at all, and `[Notebook]` would simply never run. `restartFrom` replays the known
- * sources through a gate that now asks all of those questions, so the unaffected notebooks fall
- * straight back out of it.
+ * source touch at all, and `[Notebook]` would simply never run. Invalidating `[Notebook]` re-runs
+ * every source through a gate that now asks all of those questions; the unaffected notebooks
+ * re-emit an unchanged row, so their `[Page]` does not run.
  */
 async function revalidate(host: Host): Promise<void> {
   let stale = false;
@@ -430,7 +432,7 @@ async function revalidate(host: Host): Promise<void> {
     const uri = path.slice(1);
     // The serialized artifact, not the source: it is `[Notebook]`'s record of what it decided
     // to render, and a `[Page]` that threw consumed its update and left the two disagreeing.
-    // Without this the source's own edit is invisible here — the scanner already spent it.
+    // Without this the source's own edit is invisible here — the scan already recorded it.
     const artifact = await tryReadText(host.cache, sidecarPath(uri, ARTIFACT_SUFFIX));
     const reason = await staleReason(
       host,
@@ -474,9 +476,9 @@ function runtimeUrlOf(host: Host): Promise<string> {
  * Everything that throws for a notebook-specific reason (`resolveNotebook`,
  * `copyAttachments`) still runs before anything is written at all.
  *
- * The freshness gate is asked again here, not only in `[Notebook]`: `restartFrom` replays
- * every past `notebook` update through this stage, and re-rendering a page that nothing has
- * invalidated would undo the incrementality the whole pipeline exists for.
+ * The freshness gate is asked again here, not only in `[Notebook]`: a `[Page]` task can run for
+ * a notebook whose row says stale while another build already rendered it, and re-rendering a
+ * page that nothing has invalidated would undo the incrementality the whole pipeline exists for.
  */
 async function emitPage(host: Host, uri: string): Promise<void> {
   const notebookPath = sourcePath(uri);
@@ -612,6 +614,33 @@ async function pruneNotebook(host: Host, uri: string): Promise<void> {
 }
 
 /**
+ * Prune the outputs of notebooks the engine has no record of: a source removed while the
+ * engine state was missing — the first build after an upgrade from the 0.2-based build (its
+ * state, `notebooks/.notebook-build/state`, is removed here), or a lost state folder. Each
+ * rendered notebook leaves an outputs manifest in `cache`; one whose source is gone (or no
+ * longer a notebook) is pruned like a removed notebook. Runs once per instance.
+ */
+async function pruneOrphans(host: Host): Promise<void> {
+  const legacy = joinPath("/", SYSTEM_FOLDER, "state");
+  if (await host.notebooks.exists(legacy)) await host.notebooks.remove(legacy);
+  const root = joinPath("/", SYSTEM_FOLDER);
+  if (!(await host.cache.exists(root))) return;
+  const orphans: string[] = [];
+  for await (const info of host.cache.list(root, { recursive: true })) {
+    if (info.kind !== "file" || !info.path.endsWith(MANIFEST_SUFFIX)) continue;
+    const path = joinPath("/", info.path);
+    const uri = path.slice(root.length + 1, -MANIFEST_SUFFIX.length);
+    if (!NOTEBOOK_EXT.test(uri) || !(await host.notebooks.exists(sourcePath(uri)))) {
+      orphans.push(uri);
+    }
+  }
+  for (const uri of orphans) {
+    host.logger.info("pruning an orphaned notebook", { notebook: sourcePath(uri) });
+    await pruneNotebook(host, uri);
+  }
+}
+
+/**
  * `scanSources` → `sources` → [Notebook] → `notebook` → [Page]; a removed (or no longer a
  * notebook) source retracts its `notebook` row, and [Page]'s `dispose` prunes what it wrote.
  *
@@ -634,8 +663,9 @@ function notebookBuilders(host: Host): BuilderDef[] {
       outputs: [NOTEBOOK_COLLECTION],
       async run(ctx) {
         const uri = ctx.key;
-        if (!NOTEBOOK_EXT.test(uri) || !(await host.notebooks.exists(sourcePath(uri)))) return;
+        if (!NOTEBOOK_EXT.test(uri)) return;
         try {
+          if (!(await host.notebooks.exists(sourcePath(uri)))) return;
           const collisions = await collidingSources(host, uri);
           if (collisions.length > 0) {
             throw new Error(
@@ -658,7 +688,7 @@ function notebookBuilders(host: Host): BuilderDef[] {
           );
         } catch (error) {
           recordFailure(host, sourcePath(uri), error);
-          throw new RecordedFailure(String(error));
+          throw new RecordedFailure(String(error), { cause: error });
         }
       },
     },
@@ -667,11 +697,11 @@ function notebookBuilders(host: Host): BuilderDef[] {
       inputs: [NOTEBOOK_COLLECTION],
       outputs: [],
       async run(ctx) {
-        const row = (await ctx.get(NOTEBOOK_COLLECTION, ctx.key)) as {
-          stale: string | null;
-        } | null;
-        if (row?.stale === null) return; // fresh: nothing to re-derive
         try {
+          const row = (await ctx.get(NOTEBOOK_COLLECTION, ctx.key)) as {
+            stale: string | null;
+          } | null;
+          if (row?.stale === null) return; // fresh: nothing to re-derive
           await emitPage(host, ctx.key);
         } catch (error) {
           recordFailure(host, sourcePath(ctx.key), error);
@@ -720,7 +750,8 @@ export function newNotebookBuild(options: NotebookBuildOptions): NotebookBuild {
   // source scan never sees it).
   let engine: Promise<BuildEngine> | undefined;
   const getEngine = () => {
-    engine ??= createBuildEngine({
+    if (engine) return engine;
+    const opening = createBuildEngine({
       builders: notebookBuilders(host),
       persistence: {
         kind: "files",
@@ -730,37 +761,57 @@ export function newNotebookBuild(options: NotebookBuildOptions): NotebookBuild {
       maxAttempts: 1,
       logger,
     });
-    return engine;
+    engine = opening;
+    opening.catch(() => {
+      if (engine === opening) engine = undefined; // a failed open is retried by the next build
+    });
+    return opening;
   };
 
+  // Builds share `host` and one engine (whose `run` is not re-entrant): a build called while
+  // another is in progress waits for it.
+  let last: Promise<void> = Promise.resolve();
   return {
-    async build() {
-      host.engine = await getEngine();
-      host.buildId = `${Date.now().toString(36)}.${Math.random().toString(36).slice(2, 10)}`;
-      host.changed.clear();
-      host.failures.length = 0;
-      host.runtime = undefined;
-      host.resolver.reset();
-      host.outputProbe.clear();
-      host.configHash = await configHashOf(options);
-      host.rootsChecked ??= assertDistinctRoots(host);
-      await host.rootsChecked;
-      // Before the engine's mtime scanner gets a say: everything else the pages depend on.
-      await revalidate(host);
-      await scanSources(host.engine, { files: notebooks, root: "/" });
-      // Notebooks that failed last time are retried.
-      for (const d of await host.engine.deadLetters()) await host.engine.requeue(d.builder, d.key);
-      await host.engine.run();
-      if (host.failures.length > 0) {
-        for (const failure of host.failures) {
-          logger.error("notebook build failed", {
-            notebook: failure.notebookPath,
-            error: failure.error,
-          });
-        }
-        options.onFailed?.([...host.failures]);
-      }
-      if (host.changed.size > 0) options.onRebuilt?.([...host.changed]);
+    build() {
+      const next = last.then(runBuild, runBuild);
+      last = next.catch(() => undefined);
+      return next;
     },
   };
+
+  async function runBuild(): Promise<void> {
+    host.engine = await getEngine();
+    host.buildId = `${Date.now().toString(36)}.${Math.random().toString(36).slice(2, 10)}`;
+    host.changed.clear();
+    host.failures.length = 0;
+    host.runtime = undefined;
+    host.resolver.reset();
+    host.outputProbe.clear();
+    host.configHash = await configHashOf(options);
+    host.rootsChecked ??= assertDistinctRoots(host);
+    await host.rootsChecked;
+    host.orphansPruned ??= pruneOrphans(host);
+    await host.orphansPruned;
+    // Before the source scan (which sees only a source's mtime): everything else the
+    // pages depend on.
+    await revalidate(host);
+    await scanSources(host.engine, { files: notebooks, root: "/" });
+    // Notebooks that failed last time are retried.
+    for (const d of await host.engine.deadLetters()) await host.engine.requeue(d.builder, d.key);
+    await host.engine.run();
+    // A task that failed outside the builders' own reporting (an I/O error) is reported too.
+    for (const d of await host.engine.deadLetters()) {
+      recordFailure(host, sourcePath(d.key), new Error(d.error));
+    }
+    if (host.failures.length > 0) {
+      for (const failure of host.failures) {
+        logger.error("notebook build failed", {
+          notebook: failure.notebookPath,
+          error: failure.error,
+        });
+      }
+      options.onFailed?.([...host.failures]);
+    }
+    if (host.changed.size > 0) options.onRebuilt?.([...host.changed]);
+  }
 }

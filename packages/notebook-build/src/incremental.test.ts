@@ -728,3 +728,39 @@ describe("newNotebookBuild — a deleted notebook stays deleted", () => {
     expect(await output.exists("/_m/d3@1/index.js")).toBe(true);
   });
 });
+
+describe("newNotebookBuild — overlapping builds, lost state", () => {
+  it("a build called while another runs waits for it; both report", async () => {
+    const notebooks = await seed();
+    const output = new MemFilesApi();
+    const rebuilt: string[][] = [];
+    const b = build(notebooks, output, { onRebuilt: (changed) => rebuilt.push(changed) });
+    await Promise.all([b.build(), b.build()]);
+    expect(await output.exists("/a.html")).toBe(true);
+    expect(await output.exists("/b.html")).toBe(true);
+    expect(rebuilt).toHaveLength(1); // the second build found nothing to do
+  });
+
+  it("prunes a notebook removed while the engine state was lost", async () => {
+    const notebooks = await seed();
+    const output = new MemFilesApi();
+    const cache = new MemFilesApi();
+    await build(notebooks, output, { cache }).build();
+    expect(await output.exists("/b.html")).toBe(true);
+
+    await notebooks.remove("/.notebook-build"); // the engine state is gone
+    await notebooks.remove("/b.md");
+    await build(notebooks, output, { cache }).build();
+
+    expect(await output.exists("/b.html")).toBe(false);
+    expect(await output.exists("/a.html")).toBe(true);
+  });
+
+  it("removes the state folder of the 0.2-based build", async () => {
+    const notebooks = await seed();
+    await writeText(notebooks, "/.notebook-build/state/cells.json", "{}");
+    await build(notebooks, new MemFilesApi()).build();
+    expect(await notebooks.exists("/.notebook-build/state")).toBe(false);
+    expect(await notebooks.exists("/.notebook-build/engine")).toBe(true);
+  });
+});
