@@ -41,7 +41,7 @@ convergence and returns; call it again to pick up changes.
 | `stylesUrl` | Stylesheet the pages link. Unset, the pages carry no styles at all. |
 | `onRebuilt` | Called once per converged build with every output path that changed: page, attachments and closure. |
 | `onFailed` | Called once per converged build with `NotebookFailure[]` (`{ notebookPath, error }`). One bad notebook never stops the others. |
-| `logger` | A `Logger` from `@statewalker/webrun-builder`. Defaults to a no-op logger. |
+| `logger` | A `Logger` from `@statewalker/webrun-builder` (0.3 or later). Defaults to a no-op logger. |
 
 ## Examples
 
@@ -208,7 +208,7 @@ Each failure is reported through `onFailed` for its notebook; the other notebook
 
 - `@observablehq/notebook-kit`: parsing, serialization, transpilation and the page runtime.
 - `markdown-it`: renders prose cells at build time.
-- `@statewalker/webrun-builder` (peer): the incremental build engine.
+- `@statewalker/webrun-builder` (peer, `^0.3.0`): the incremental build engine. The build is two builders over it: `Notebook` (one task per source: parse, serialize, freshness gate) and `Page` (render; its `dispose` prunes a removed notebook's outputs). The engine's state lives under `notebooks/.notebook-build/engine`.
 - `@statewalker/webrun-files` (peer): the storage interface.
 - `@statewalker/webrun-modules` (peer): the module server the build expects.
 

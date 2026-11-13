@@ -607,9 +607,9 @@ describe("newNotebookBuild — the successful-render record is written last", ()
 });
 
 /**
- * `restartFrom(NOTEBOOK_CELL)` clears the handled markers of the whole downstream closure, so
- * `[Page]` replays the `notebook` update of a notebook that has since been deleted — and its
- * `sources-removed` tombstone was consumed builds ago, so no prune will ever undo it again.
+ * Regression from the previous engine: re-driving the pipeline (`revalidate`, now
+ * `invalidate`) replayed the `notebook` update of a notebook that had since been deleted, and
+ * no prune would ever undo the page it wrote. A deleted source now retracts its row for good.
  *
  * Two builds cannot reach this: the resurrection needs a THIRD build, one where something
  * unrelated makes `revalidate` restart the pipeline. The triggers are ordinary — a new

@@ -1,11 +1,12 @@
 import type { Notebook } from "@observablehq/notebook-kit";
 import {
-  BuildEngine,
+  type BuildEngine,
+  type BuilderDef,
+  createBuildEngine,
   type Logger,
   NULL_LOGGER,
-  type RegisteredBuilder,
-  SOURCES_REMOVED_SIGNAL,
-  SOURCES_SIGNAL,
+  SOURCES_COLLECTION,
+  scanSources,
 } from "@statewalker/webrun-builder";
 import {
   dirname,
@@ -36,12 +37,20 @@ import { type CellDefinition, transpileNotebook } from "./transpile.js";
 /** Where the build's own state lives: engine stores in `notebooks`, sidecars in `cache`. */
 const SYSTEM_FOLDER = ".notebook-build";
 
-const NOTEBOOK_CELL = "Notebook";
-const PAGE_CELL = "Page";
-const PRUNE_CELL = "Prune";
+const NOTEBOOK_BUILDER = "Notebook";
+const PAGE_BUILDER = "Page";
 
-/** Signal carrying "the serialized notebook for this uri changed". */
-const NOTEBOOK_SIGNAL = "notebook";
+/**
+ * Collection carrying, per notebook, `{ hash, stale }`: the serialized notebook's hash and why
+ * its page must be re-derived (`null` when it is fresh). A stale value also carries the build's
+ * id, so [Page] runs again on every build that finds the page stale.
+ */
+const NOTEBOOK_COLLECTION = "notebook";
+
+/** Marks a notebook failure already recorded in `host.failures`: the engine keeps the old page. */
+class RecordedFailure extends Error {
+  override name = "RecordedFailure";
+}
 
 /**
  * The runtime the rendered page imports `define` from. It is not one of the
@@ -130,7 +139,9 @@ interface NotebookState {
 }
 
 interface Host {
-  engine: BuildEngine<Host>;
+  engine: BuildEngine;
+  /** Unique per `build()` (across instances); part of a stale notebook's row (see `NOTEBOOK_COLLECTION`). */
+  buildId: string;
   notebooks: FilesApi;
   output: FilesApi;
   cache: FilesApi;
@@ -432,7 +443,7 @@ async function revalidate(host: Host): Promise<void> {
     if (await host.cache.exists(statePath)) await host.cache.remove(statePath);
     stale = true;
   }
-  if (stale) await host.engine.restartFrom(NOTEBOOK_CELL);
+  if (stale) await host.engine.invalidate(NOTEBOOK_BUILDER);
 }
 
 function runtimeUrlOf(host: Host): Promise<string> {
@@ -601,114 +612,77 @@ async function pruneNotebook(host: Host, uri: string): Promise<void> {
 }
 
 /**
- * scanner → `sources` → [Notebook] → `notebook` → [Page], with [Prune] on the
- * `sources-removed` tombstone.
+ * `scanSources` → `sources` → [Notebook] → `notebook` → [Page]; a removed (or no longer a
+ * notebook) source retracts its `notebook` row, and [Page]'s `dispose` prunes what it wrote.
  *
  * [Notebook] owns parsing, serialization and the content-hash gate; [Page] owns
  * resolution, transpilation, rendering, attachments and the static dependency closure.
  * The serialized artifact in `cache` is the handoff between them, so a build resumed in
  * a fresh process renders exactly the bytes that were hashed.
  *
- * A notebook that throws is recorded in `host.failures` and its update is marked
- * handled: the cascade continues to the other notebooks instead of dying on the first
- * bad one, and the failures are reported once the build converges.
+ * A notebook that throws is recorded in `host.failures`: [Notebook] then fails its task (the
+ * engine keeps the notebook's previous row, so its page is not pruned) and the failure is
+ * retried on the next build; a [Page] that throws is recorded and its page re-derived on the
+ * next build (its state was never written, so `revalidate` finds it stale). The other
+ * notebooks build regardless, and the failures are reported once the build converges.
  */
-function notebookBuilders(): RegisteredBuilder<Host>[] {
+function notebookBuilders(host: Host): BuilderDef[] {
   return [
     {
-      id: NOTEBOOK_CELL,
-      inputs: [SOURCES_SIGNAL],
-      outputs: [NOTEBOOK_SIGNAL],
-      async *handler(host) {
-        for await (const update of host.engine.readUpdates({
-          signal: SOURCES_SIGNAL,
-          cell: NOTEBOOK_CELL,
-        })) {
-          // A `sources` entry outlives the file: the scanner emits `sources-removed` on a
-          // deletion but leaves the old `sources` entry in the store, and `restartFrom` replays
-          // it. Reading it back would report a deleted notebook as a build failure, for ever.
-          if (
-            NOTEBOOK_EXT.test(update.uri) &&
-            (await host.notebooks.exists(sourcePath(update.uri)))
-          ) {
-            try {
-              const collisions = await collidingSources(host, update.uri);
-              if (collisions.length > 0) {
-                throw new Error(
-                  `${sourcePath(update.uri)}: ${[sourcePath(update.uri), ...collisions].join(
-                    " and ",
-                  )} all publish to ${pagePath(update.uri)} — rename all but one`,
-                );
-              }
-              const text = await readText(host.notebooks, sourcePath(update.uri));
-              const serialized = serializeNotebook(
-                parseSource(text, update.uri, host.dom),
-                host.dom,
-              );
-              if (
-                (await staleReason(host, update.uri, await notebookHash(serialized))) !== undefined
-              ) {
-                await writeText(host.cache, sidecarPath(update.uri, ARTIFACT_SUFFIX), serialized);
-                yield { signal: NOTEBOOK_SIGNAL, uri: update.uri, stamp: update.stamp };
-              }
-            } catch (error) {
-              recordFailure(host, sourcePath(update.uri), error);
-            }
+      id: NOTEBOOK_BUILDER,
+      inputs: [SOURCES_COLLECTION],
+      outputs: [NOTEBOOK_COLLECTION],
+      async run(ctx) {
+        const uri = ctx.key;
+        if (!NOTEBOOK_EXT.test(uri) || !(await host.notebooks.exists(sourcePath(uri)))) return;
+        try {
+          const collisions = await collidingSources(host, uri);
+          if (collisions.length > 0) {
+            throw new Error(
+              `${sourcePath(uri)}: ${[sourcePath(uri), ...collisions].join(
+                " and ",
+              )} all publish to ${pagePath(uri)} — rename all but one`,
+            );
           }
-          await update.handled();
-          if (!(await host.engine.yieldControl())) return false;
+          const text = await readText(host.notebooks, sourcePath(uri));
+          const serialized = serializeNotebook(parseSource(text, uri, host.dom), host.dom);
+          const hash = await notebookHash(serialized);
+          const stale = (await staleReason(host, uri, hash)) ?? null;
+          if (stale !== null) {
+            await writeText(host.cache, sidecarPath(uri, ARTIFACT_SUFFIX), serialized);
+          }
+          ctx.emit(
+            NOTEBOOK_COLLECTION,
+            uri,
+            stale === null ? { hash, stale } : { hash, stale, build: host.buildId },
+          );
+        } catch (error) {
+          recordFailure(host, sourcePath(uri), error);
+          throw new RecordedFailure(String(error));
         }
-        return true;
       },
     },
     {
-      id: PAGE_CELL,
-      inputs: [NOTEBOOK_SIGNAL],
+      id: PAGE_BUILDER,
+      inputs: [NOTEBOOK_COLLECTION],
       outputs: [],
-      // biome-ignore lint/correctness/useYield: a sink cell emits no updates.
-      async *handler(host) {
-        for await (const update of host.engine.readUpdates({
-          signal: NOTEBOOK_SIGNAL,
-          cell: PAGE_CELL,
-        })) {
-          try {
-            // A `notebook` update outlives the notebook. `restartFrom` clears the handled
-            // markers of the whole downstream closure, so this stage replays the update of a
-            // source that has since been deleted — and whose `sources-removed` tombstone was
-            // consumed builds ago, so no prune will ever undo what gets written here. Without
-            // this guard an ordinary third build resurrected every deleted notebook as a blank
-            // page, permanently, and reported no failure.
-            if (await host.notebooks.exists(sourcePath(update.uri))) {
-              await emitPage(host, update.uri);
-            }
-          } catch (error) {
-            recordFailure(host, sourcePath(update.uri), error);
-          }
-          await update.handled();
-          if (!(await host.engine.yieldControl())) return false;
+      async run(ctx) {
+        const row = (await ctx.get(NOTEBOOK_COLLECTION, ctx.key)) as {
+          stale: string | null;
+        } | null;
+        if (row?.stale === null) return; // fresh: nothing to re-derive
+        try {
+          await emitPage(host, ctx.key);
+        } catch (error) {
+          recordFailure(host, sourcePath(ctx.key), error);
         }
-        return true;
       },
-    },
-    {
-      id: PRUNE_CELL,
-      inputs: [SOURCES_REMOVED_SIGNAL],
-      outputs: [],
-      // biome-ignore lint/correctness/useYield: a sink cell emits no updates.
-      async *handler(host) {
-        for await (const update of host.engine.readUpdates({
-          signal: SOURCES_REMOVED_SIGNAL,
-          cell: PRUNE_CELL,
-        })) {
-          try {
-            await pruneNotebook(host, update.uri);
-          } catch (error) {
-            recordFailure(host, sourcePath(update.uri), error);
-          }
-          await update.handled();
-          if (!(await host.engine.yieldControl())) return false;
+      async dispose(key) {
+        try {
+          await pruneNotebook(host, key);
+        } catch (error) {
+          recordFailure(host, sourcePath(key), error);
         }
-        return true;
       },
     },
   ];
@@ -736,23 +710,33 @@ export function newNotebookBuild(options: NotebookBuildOptions): NotebookBuild {
     ...(options.stylesUrl === undefined ? {} : { stylesUrl: options.stylesUrl }),
     logger,
     configHash: "",
+    buildId: "",
     resolver: memoizingResolver(options.moduleServer),
     outputProbe: new Map<string, Promise<boolean>>(),
     changed: new Set<string>(),
     failures: [] as NotebookFailure[],
   } as Host;
-  const engine = new BuildEngine<Host>({
-    files: notebooks,
-    rootPath: "/",
-    systemFolder: SYSTEM_FOLDER,
-    logger,
-    host,
-  });
-  host.engine = engine;
-  for (const builder of notebookBuilders()) engine.registerBuilder(builder);
+  // The engine's state lives in `notebooks` under the system folder (a dot-folder, so the
+  // source scan never sees it).
+  let engine: Promise<BuildEngine> | undefined;
+  const getEngine = () => {
+    engine ??= createBuildEngine({
+      builders: notebookBuilders(host),
+      persistence: {
+        kind: "files",
+        files: notebooks,
+        path: joinPath("/", SYSTEM_FOLDER, "engine"),
+      },
+      maxAttempts: 1,
+      logger,
+    });
+    return engine;
+  };
 
   return {
     async build() {
+      host.engine = await getEngine();
+      host.buildId = `${Date.now().toString(36)}.${Math.random().toString(36).slice(2, 10)}`;
       host.changed.clear();
       host.failures.length = 0;
       host.runtime = undefined;
@@ -763,9 +747,10 @@ export function newNotebookBuild(options: NotebookBuildOptions): NotebookBuild {
       await host.rootsChecked;
       // Before the engine's mtime scanner gets a say: everything else the pages depend on.
       await revalidate(host);
-      for await (const _ of engine.run()) {
-        // Drain progress events to convergence.
-      }
+      await scanSources(host.engine, { files: notebooks, root: "/" });
+      // Notebooks that failed last time are retried.
+      for (const d of await host.engine.deadLetters()) await host.engine.requeue(d.builder, d.key);
+      await host.engine.run();
       if (host.failures.length > 0) {
         for (const failure of host.failures) {
           logger.error("notebook build failed", {
