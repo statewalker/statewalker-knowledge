@@ -72,19 +72,6 @@ catalogs:
     vitest:
       specifier: ^5.0.3
       version: 5.0.3
-  peers:
-    '@statewalker/webrun-builder':
-      specifier: ^0.5.0
-      version: 0.5.0
-    '@statewalker/webrun-files':
-      specifier: ^0.12.0
-      version: 0.12.0
-    '@statewalker/webrun-modules':
-      specifier: ^0.4.0
-      version: 0.4.0
-    '@statewalker/webrun-site-builder':
-      specifier: ^0.3.0
-      version: 0.3.0
 
 importers:
 
