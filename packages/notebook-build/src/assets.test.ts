@@ -76,10 +76,10 @@ describe("copyAttachments", () => {
 });
 
 /**
- * A REAL filesystem, not `MemFilesApi`. Mem keys its store on the literal path string, so
- * `/nb/deep/../../x` is just an odd key there and nothing escapes; a real backend
- * (`NodeFilesApi.resolvePath` is `rootDir + normalizePath(path)`, and `normalizePath` does
- * not resolve `..`) hands the traversal straight to the OS.
+ * A REAL filesystem, not `MemFilesApi`, so a write that escaped would land on disk where the
+ * test can see it. Since webrun-files 0.12 every backend resolves `..` before any mount or
+ * guard sees the path (and throws above the root), so `/nb/deep/../../x` is `/x`: inside the
+ * FilesApi root, but outside the notebook's directory. That containment is this code's job.
  */
 describe("copyAttachments — path containment", () => {
   let root: string;
