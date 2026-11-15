@@ -20,10 +20,10 @@ catalogs:
       version: 2.6.6
     '@statewalker/db-api':
       specifier: ^0.1.1
-      version: 0.1.5
+      version: 0.1.6
     '@statewalker/db-duckdb-browser':
       specifier: ^0.1.1
-      version: 0.1.6
+      version: 0.1.7
     '@statewalker/webrun-files':
       specifier: ^0.10.0
       version: 0.10.5
@@ -137,7 +137,7 @@ importers:
         version: 1.33.1-dev57.0
       '@statewalker/db-duckdb-browser':
         specifier: 'catalog:'
-        version: 0.1.6
+        version: 0.1.7
       '@statewalker/notebook-db':
         specifier: workspace:^
         version: link:../notebook-db
@@ -176,10 +176,10 @@ importers:
         version: 2.6.6(@types/markdown-it@14.2.0)(@types/node@26.6.4)(esbuild@0.28.2)(yaml@2.9.1)
       '@statewalker/db-api':
         specifier: 'catalog:'
-        version: 0.1.5
+        version: 0.1.6
       '@statewalker/db-duckdb-browser':
         specifier: 'catalog:'
-        version: 0.1.6
+        version: 0.1.7
       '@statewalker/webrun-files':
         specifier: 'catalog:'
         version: 0.10.5
@@ -819,11 +819,11 @@ packages:
     resolution: {integrity: sha512-doH1gimEu3A46VX6aVxpHTeHrytJAG6HgdxntYnCFiIFHEM/ZGpG8KiZGBChchjQmG0XFIBL552kBTjVcMZXwQ==}
     engines: {node: '>=12'}
 
-  '@statewalker/db-api@0.1.5':
-    resolution: {integrity: sha512-RJVacBYGujHUwmvQxs2ijS0CdHk28nn5LvejqWq3A0f+SPxhNKqhnEWPA7ZmUOweFwqjmKgqailCufQtLBjP2g==}
+  '@statewalker/db-api@0.1.6':
+    resolution: {integrity: sha512-SokfgcyB9ZY5pWUUyxIMo1JsN7FOQGPLZVlMcoxrtwgk0jKeQMAfz2GKvihAJB/VFStqDk/bqgR07mDh+TxdQw==}
 
-  '@statewalker/db-duckdb-browser@0.1.6':
-    resolution: {integrity: sha512-6qR0ncQg3vL/LCHnId016PmwJ2nZpzubyuif2hizaU3GxfxDQ2Tr+8kuOlX3m9z7U2hlnxTSS+GDJmTJZBQydA==}
+  '@statewalker/db-duckdb-browser@0.1.7':
+    resolution: {integrity: sha512-kzRu+bDfPqM4EbOnNh3/MoDHJ6Tl8GOAaWDVWZsnPJNj2d1cjP+9n7+dups8zoT1UmwB4vUPaeuiQGAS6D9aiQ==}
 
   '@statewalker/webrun-builder@0.3.1':
     resolution: {integrity: sha512-Ei+jNAiqu+7v3e47ldNZhB4ESXbH5TimUJZBq4hoKyGUmUfOYWSxfFPIVk/p7sJ7eBr8X2qLHWhJmWh3HyHemg==}
@@ -2639,12 +2639,12 @@ snapshots:
     dependencies:
       escape-string-regexp: 5.0.0
 
-  '@statewalker/db-api@0.1.5': {}
+  '@statewalker/db-api@0.1.6': {}
 
-  '@statewalker/db-duckdb-browser@0.1.6':
+  '@statewalker/db-duckdb-browser@0.1.7':
     dependencies:
       '@duckdb/duckdb-wasm': 1.33.1-dev57.0
-      '@statewalker/db-api': 0.1.5
+      '@statewalker/db-api': 0.1.6
 
   '@statewalker/webrun-builder@0.3.1':
     dependencies:
