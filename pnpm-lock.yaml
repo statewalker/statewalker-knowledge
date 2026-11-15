@@ -20,7 +20,7 @@ catalogs:
       version: 2.6.6
     '@statewalker/db-api':
       specifier: ^0.1.1
-      version: 0.1.6
+      version: 0.1.7
     '@statewalker/db-duckdb-browser':
       specifier: ^0.1.1
       version: 0.1.8
@@ -72,19 +72,6 @@ catalogs:
     vitest:
       specifier: ^5.0.3
       version: 5.0.3
-  peers:
-    '@statewalker/webrun-builder':
-      specifier: ^0.5.0
-      version: 0.5.0
-    '@statewalker/webrun-files':
-      specifier: ^0.12.0
-      version: 0.12.0
-    '@statewalker/webrun-modules':
-      specifier: ^0.4.0
-      version: 0.4.0
-    '@statewalker/webrun-site-builder':
-      specifier: ^0.3.0
-      version: 0.3.0
 
 importers:
 
@@ -189,7 +176,7 @@ importers:
         version: 2.6.6(@types/markdown-it@14.2.0)(@types/node@26.6.4)(esbuild@0.28.2)(yaml@2.9.1)
       '@statewalker/db-api':
         specifier: 'catalog:'
-        version: 0.1.6
+        version: 0.1.7
       '@statewalker/db-duckdb-browser':
         specifier: 'catalog:'
         version: 0.1.8
@@ -835,8 +822,8 @@ packages:
     resolution: {integrity: sha512-doH1gimEu3A46VX6aVxpHTeHrytJAG6HgdxntYnCFiIFHEM/ZGpG8KiZGBChchjQmG0XFIBL552kBTjVcMZXwQ==}
     engines: {node: '>=12'}
 
-  '@statewalker/db-api@0.1.6':
-    resolution: {integrity: sha512-SokfgcyB9ZY5pWUUyxIMo1JsN7FOQGPLZVlMcoxrtwgk0jKeQMAfz2GKvihAJB/VFStqDk/bqgR07mDh+TxdQw==}
+  '@statewalker/db-api@0.1.7':
+    resolution: {integrity: sha512-pOrHF9vIseL4QgjK2voyHHJmKTV1MPaGo2MwWemVYTOZ0aQ8E3NP/IKCBh0gu+IjFY8FnPJ00FxafS0YxjwxVw==}
 
   '@statewalker/db-duckdb-browser@0.1.8':
     resolution: {integrity: sha512-byBLQUWh0F2IGg5dlCLJXLcmateruCGHhFoK5P2+SBZjNBgqX7BZpsUeBk2ZByO2Vnh2ZMYmEgLot0M6AvtJeA==}
@@ -2664,12 +2651,12 @@ snapshots:
     dependencies:
       escape-string-regexp: 5.0.0
 
-  '@statewalker/db-api@0.1.6': {}
+  '@statewalker/db-api@0.1.7': {}
 
   '@statewalker/db-duckdb-browser@0.1.8':
     dependencies:
       '@duckdb/duckdb-wasm': 1.33.1-dev65.0
-      '@statewalker/db-api': 0.1.6
+      '@statewalker/db-api': 0.1.7
 
   '@statewalker/webrun-builder@0.5.0':
     dependencies:
