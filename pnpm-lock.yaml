@@ -34,8 +34,8 @@ catalogs:
       specifier: ^0.12.0
       version: 0.12.0
     '@statewalker/webrun-http-browser':
-      specifier: ^0.16.0
-      version: 0.16.0
+      specifier: ^0.17.0
+      version: 0.17.0
     '@statewalker/webrun-http-events':
       specifier: ^0.2.1
       version: 0.2.1
@@ -43,8 +43,8 @@ catalogs:
       specifier: ^0.4.0
       version: 0.4.0
     '@statewalker/webrun-site-host':
-      specifier: ^0.5.0
-      version: 0.5.0
+      specifier: ^0.6.0
+      version: 0.6.0
     '@types/jsdom':
       specifier: ^30.0.0
       version: 30.0.0
@@ -238,10 +238,10 @@ importers:
         version: 0.12.0
       '@statewalker/webrun-http-browser':
         specifier: 'catalog:'
-        version: 0.16.0
+        version: 0.17.0
       '@statewalker/webrun-site-host':
         specifier: 'catalog:'
-        version: 0.5.0(@statewalker/webrun-files@0.12.0)
+        version: 0.6.0(@statewalker/webrun-files@0.12.0)
       esbuild:
         specifier: 'catalog:'
         version: 0.28.2
@@ -853,8 +853,8 @@ packages:
   '@statewalker/webrun-files@0.12.0':
     resolution: {integrity: sha512-8Ygw0JjouDAJ2nNXx8plZkZQ/Pesfdmdtrsyi97sArvjAmzyZ4xZ2e3eyqXEt4MUlc6oG4Q7bVnOvzzQpVWMaA==}
 
-  '@statewalker/webrun-http-browser@0.16.0':
-    resolution: {integrity: sha512-FwWkuNQD8dHHN/pWz+MDl6jl+AXumP3Nh0l4F31BBIlaJYcvBvG4WlCDJ09/6gCl2ouU0uYgSuW7Yc+IgvIrKQ==}
+  '@statewalker/webrun-http-browser@0.17.0':
+    resolution: {integrity: sha512-Rk6CL5lKA6VzW+nCcQ6q8ElfRU3NkTC2ltrFCJiCDmH5yphKa2M7UsmRDXO7Tf7PowzZWqQh8hNPwMz3klrFjw==}
 
   '@statewalker/webrun-http-events@0.2.1':
     resolution: {integrity: sha512-s6yNKGPXJwcBngsKt2EnEJm+lyoJCnwEZX7Jlu3cl7BHSczcfcoqGNXXlr+qhyX3OmfiSd2OO+snRWPfIaKTVg==}
@@ -865,16 +865,16 @@ packages:
   '@statewalker/webrun-modules@0.4.0':
     resolution: {integrity: sha512-F0h6bHGQwxXiXBayjeWzMddf+5C9VGHfW8sRZCKGLeZB4Q71Dv2Jg+GOzz9zmwCDrNoEVZFk3G4UlskHFpqY8Q==}
 
-  '@statewalker/webrun-rpc@0.14.0':
-    resolution: {integrity: sha512-HnoNCR0lIfQRQGIF9sF7XPhgZDDwuqIobAU5nVPbLB7AYGvGhe/ZlmPT8+zSK9EaYIt7ORdlgAjYKFuSHkSlGA==}
+  '@statewalker/webrun-rpc@0.15.0':
+    resolution: {integrity: sha512-qPaV5xZkebdIyLVm61AVWzMwSrQD5fTYf0vvUP2xGVoy/dnHN7Y+lsNT+nnLfqiVf0ajSr2wGd+/f+wVfsA/pw==}
 
   '@statewalker/webrun-site-builder@0.3.0':
     resolution: {integrity: sha512-c63MTkT19blI34gaN70omEtP0rhM160Ln9irZXLp6NjzKsRJvLTG4YiO0SST14MBYSPHK4JrFA2+dRDK32Pzhw==}
     peerDependencies:
       '@statewalker/webrun-files': ^0.12.0
 
-  '@statewalker/webrun-site-host@0.5.0':
-    resolution: {integrity: sha512-KP0TxsrJ4z8OOUY7lV6POpRYW+volVPikKtOTTYG6Falj5PSmQW5FZkjEThGc/uGBDP5d5gx2Q0vg9GBfZXT/A==}
+  '@statewalker/webrun-site-host@0.6.0':
+    resolution: {integrity: sha512-tSIg2HaWZ7VCJWCwt1q6rzwEoF9ICyBK3YaeUc6M8keqnL6RSqwgPflIqofzE36P/6FEYosB+aTc0vlF0iA4YA==}
     peerDependencies:
       '@statewalker/webrun-files': ^0.12.0
 
@@ -2676,10 +2676,10 @@ snapshots:
 
   '@statewalker/webrun-files@0.12.0': {}
 
-  '@statewalker/webrun-http-browser@0.16.0':
+  '@statewalker/webrun-http-browser@0.17.0':
     dependencies:
       '@statewalker/webrun-http-streams': 0.8.0
-      '@statewalker/webrun-rpc': 0.14.0
+      '@statewalker/webrun-rpc': 0.15.0
       '@statewalker/webrun-streams': 0.6.0
       idb-keyval: 6.3.0
 
@@ -2704,7 +2704,7 @@ snapshots:
       semver: 7.8.5
       sucrase: 3.35.1
 
-  '@statewalker/webrun-rpc@0.14.0':
+  '@statewalker/webrun-rpc@0.15.0':
     dependencies:
       '@statewalker/webrun-streams': 0.6.0
 
@@ -2712,11 +2712,11 @@ snapshots:
     dependencies:
       '@statewalker/webrun-files': 0.12.0
 
-  '@statewalker/webrun-site-host@0.5.0(@statewalker/webrun-files@0.12.0)':
+  '@statewalker/webrun-site-host@0.6.0(@statewalker/webrun-files@0.12.0)':
     dependencies:
       '@statewalker/webrun-files': 0.12.0
       '@statewalker/webrun-files-mem': 0.12.0
-      '@statewalker/webrun-http-browser': 0.16.0
+      '@statewalker/webrun-http-browser': 0.17.0
       '@statewalker/webrun-site-builder': 0.3.0(@statewalker/webrun-files@0.12.0)
 
   '@statewalker/webrun-streams@0.6.0': {}
