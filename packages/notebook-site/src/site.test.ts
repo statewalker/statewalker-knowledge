@@ -244,6 +244,18 @@ describe("newNotebookSite", () => {
     await res.body?.cancel();
   });
 
+  // webrun-http-events 0.2.1 decodes the topic segment, so a topic that needs percent-encoding
+  // (`my topic` on the wire is `/_events/my%20topic`) reaches its subscribers. Pins that the
+  // events mount hands the request through without re-encoding or decoding it on the way.
+  it("passes a percent-encoded topic through to the PubSub, which decodes it", async () => {
+    const events = newPubSub();
+    const handler = newNotebookSite({ output: await seededOutput(), events });
+    const res = await handler(new Request("http://h/_events/my%20topic"));
+    expect(res.headers.get("content-type")).toBe("text/event-stream");
+    expect(events.subscriberCount("my topic")).toBe(1);
+    await res.body?.cancel();
+  });
+
   // Discriminates our error handler from SiteBuilder's own default: both would answer 500 for
   // a throwing files backend, but only ours answers with this body. Deleting `setErrorHandler`
   // from site.ts leaves all the other tests green (the traversal path never throws), so this is

@@ -34,17 +34,17 @@ catalogs:
       specifier: ^0.12.0
       version: 0.12.0
     '@statewalker/webrun-http-browser':
-      specifier: ^0.6.0
-      version: 0.6.5
+      specifier: ^0.16.0
+      version: 0.16.0
     '@statewalker/webrun-http-events':
-      specifier: ^0.1.0
-      version: 0.1.1
+      specifier: ^0.2.1
+      version: 0.2.1
     '@statewalker/webrun-modules':
       specifier: ^0.4.0
       version: 0.4.0
     '@statewalker/webrun-site-host':
-      specifier: ^0.4.0
-      version: 0.4.0
+      specifier: ^0.5.0
+      version: 0.5.0
     '@types/jsdom':
       specifier: ^30.0.0
       version: 30.0.0
@@ -72,6 +72,19 @@ catalogs:
     vitest:
       specifier: ^5.0.3
       version: 5.0.3
+  peers:
+    '@statewalker/webrun-builder':
+      specifier: ^0.5.0
+      version: 0.5.0
+    '@statewalker/webrun-files':
+      specifier: ^0.12.0
+      version: 0.12.0
+    '@statewalker/webrun-modules':
+      specifier: ^0.4.0
+      version: 0.4.0
+    '@statewalker/webrun-site-builder':
+      specifier: ^0.3.0
+      version: 0.3.0
 
 importers:
 
@@ -215,7 +228,7 @@ importers:
         version: 0.12.0
       '@statewalker/webrun-http-events':
         specifier: 'catalog:'
-        version: 0.1.1
+        version: 0.2.1
       '@statewalker/webrun-site-builder':
         specifier: catalog:peers
         version: 0.3.0(@statewalker/webrun-files@0.12.0)
@@ -225,10 +238,10 @@ importers:
         version: 0.12.0
       '@statewalker/webrun-http-browser':
         specifier: 'catalog:'
-        version: 0.6.5
+        version: 0.16.0
       '@statewalker/webrun-site-host':
         specifier: 'catalog:'
-        version: 0.4.0(@statewalker/webrun-files@0.12.0)
+        version: 0.5.0(@statewalker/webrun-files@0.12.0)
       esbuild:
         specifier: 'catalog:'
         version: 0.28.2
@@ -840,42 +853,33 @@ packages:
   '@statewalker/webrun-files@0.12.0':
     resolution: {integrity: sha512-8Ygw0JjouDAJ2nNXx8plZkZQ/Pesfdmdtrsyi97sArvjAmzyZ4xZ2e3eyqXEt4MUlc6oG4Q7bVnOvzzQpVWMaA==}
 
-  '@statewalker/webrun-http-browser@0.6.5':
-    resolution: {integrity: sha512-ar8u2XMBuUbMM+iet+sh3dw7Qru4W8VXv/HjLGbFlGWzMWAU5X8boPD6lKkAG6Qedx5yY1XCOYnspHe6HmF8gg==}
+  '@statewalker/webrun-http-browser@0.16.0':
+    resolution: {integrity: sha512-FwWkuNQD8dHHN/pWz+MDl6jl+AXumP3Nh0l4F31BBIlaJYcvBvG4WlCDJ09/6gCl2ouU0uYgSuW7Yc+IgvIrKQ==}
 
-  '@statewalker/webrun-http-browser@0.7.1':
-    resolution: {integrity: sha512-MxRTSu1QXQ6N8QuXYXxJFKTJADZUjmJXDF7gzqrjFhkYZt37BQXZkk0gZvY94p/WsbZSyTST1QONMJsk3ShNAQ==}
+  '@statewalker/webrun-http-events@0.2.1':
+    resolution: {integrity: sha512-s6yNKGPXJwcBngsKt2EnEJm+lyoJCnwEZX7Jlu3cl7BHSczcfcoqGNXXlr+qhyX3OmfiSd2OO+snRWPfIaKTVg==}
 
-  '@statewalker/webrun-http-events@0.1.1':
-    resolution: {integrity: sha512-yBSM3z4PEhxC2Zf3tXI/FcpvYVovgy6uR9oqwC6Ni2byW2WGSNqexPQ3bJ/TuidaERcl/J/gPpA9Snfu47lcRw==}
-
-  '@statewalker/webrun-http-streams@0.2.5':
-    resolution: {integrity: sha512-1O9pDWRQA9JOK1yhsXPnXtlhQKKV/DtVsHD1iuy4AjKBk6+pdglHeXCkLxyhAEQdlk9HZNF29V28ZVDbblROaA==}
-
-  '@statewalker/webrun-http-streams@0.3.2':
-    resolution: {integrity: sha512-hbpnb4TCHYTE8UoFbPE3BGjInPVGrRZzFdGazdfAHjABSDqJrvEzSr9WmqfI7tgp3ss+UnD3bEEBl9Za5mo37Q==}
+  '@statewalker/webrun-http-streams@0.8.0':
+    resolution: {integrity: sha512-ZTxlopVRz6abjGWXfpnvHl7579YQ6i1dduXGxCGv7W2vaNBRvKtlF0RWBVgtmKgK2gz2+s2CuL4lAMFejKER5w==}
 
   '@statewalker/webrun-modules@0.4.0':
     resolution: {integrity: sha512-F0h6bHGQwxXiXBayjeWzMddf+5C9VGHfW8sRZCKGLeZB4Q71Dv2Jg+GOzz9zmwCDrNoEVZFk3G4UlskHFpqY8Q==}
 
-  '@statewalker/webrun-rpc@0.4.3':
-    resolution: {integrity: sha512-UpHIg2lhkymyXSyPL6xJhk2NVfyTOSUE01RLJtIob8PhFKhDkTlVtQKo6udd/hvAXALteUVK7d/Xfv+CvGrvzA==}
-
-  '@statewalker/webrun-rpc@0.5.1':
-    resolution: {integrity: sha512-DpnT0dJ0KpdL5QKqKTmN75CnGc1w24iHdZqYfJQLVpSKEIR/GjPb3Vzbzb4NIu9tCHsroW+Dq1CO84Jp6YCXzw==}
+  '@statewalker/webrun-rpc@0.14.0':
+    resolution: {integrity: sha512-HnoNCR0lIfQRQGIF9sF7XPhgZDDwuqIobAU5nVPbLB7AYGvGhe/ZlmPT8+zSK9EaYIt7ORdlgAjYKFuSHkSlGA==}
 
   '@statewalker/webrun-site-builder@0.3.0':
     resolution: {integrity: sha512-c63MTkT19blI34gaN70omEtP0rhM160Ln9irZXLp6NjzKsRJvLTG4YiO0SST14MBYSPHK4JrFA2+dRDK32Pzhw==}
     peerDependencies:
       '@statewalker/webrun-files': ^0.12.0
 
-  '@statewalker/webrun-site-host@0.4.0':
-    resolution: {integrity: sha512-KEdwJzKMJsE4blx/zeI4N1H3bjsm5NOTQog8x/986+McKP/MflQEc1QBR8Ua9ITRhC6mDSnIn4SSHusisLsy3Q==}
+  '@statewalker/webrun-site-host@0.5.0':
+    resolution: {integrity: sha512-KP0TxsrJ4z8OOUY7lV6POpRYW+volVPikKtOTTYG6Falj5PSmQW5FZkjEThGc/uGBDP5d5gx2Q0vg9GBfZXT/A==}
     peerDependencies:
       '@statewalker/webrun-files': ^0.12.0
 
-  '@statewalker/webrun-streams@0.2.3':
-    resolution: {integrity: sha512-v4+32VDLjt8HzAhjgd7K3bgiasQosU7FooXhLaTU2dQzYyNZ6NbNMOI/24SL0bdmTHkSU3bxktASn0hO3sCwng==}
+  '@statewalker/webrun-streams@0.6.0':
+    resolution: {integrity: sha512-o+B7i9UD/VnyWpR5zsAPmMunSgMSMPDOnLMjvloSouoKtFzaHYhbPWoHoWvBLtBPuBW/IoletogYjV0ea2bPWQ==}
 
   '@sveltejs/acorn-typescript@1.0.13':
     resolution: {integrity: sha512-wgKggnhZVL9Bfx1OaKKTrYY9BFRk6C8UAkQNUcIv1+llzYrIqy+RZm5HPKzn0NpEBvTVhTqB4kQyllZywsRBRQ==}
@@ -2672,29 +2676,18 @@ snapshots:
 
   '@statewalker/webrun-files@0.12.0': {}
 
-  '@statewalker/webrun-http-browser@0.6.5':
+  '@statewalker/webrun-http-browser@0.16.0':
     dependencies:
-      '@statewalker/webrun-http-streams': 0.2.5
-      '@statewalker/webrun-rpc': 0.4.3
-      '@statewalker/webrun-streams': 0.2.3
+      '@statewalker/webrun-http-streams': 0.8.0
+      '@statewalker/webrun-rpc': 0.14.0
+      '@statewalker/webrun-streams': 0.6.0
       idb-keyval: 6.3.0
 
-  '@statewalker/webrun-http-browser@0.7.1':
-    dependencies:
-      '@statewalker/webrun-http-streams': 0.3.2
-      '@statewalker/webrun-rpc': 0.5.1
-      '@statewalker/webrun-streams': 0.2.3
-      idb-keyval: 6.3.0
+  '@statewalker/webrun-http-events@0.2.1': {}
 
-  '@statewalker/webrun-http-events@0.1.1': {}
-
-  '@statewalker/webrun-http-streams@0.2.5':
+  '@statewalker/webrun-http-streams@0.8.0':
     dependencies:
-      '@statewalker/webrun-streams': 0.2.3
-
-  '@statewalker/webrun-http-streams@0.3.2':
-    dependencies:
-      '@statewalker/webrun-streams': 0.2.3
+      '@statewalker/webrun-streams': 0.6.0
 
   '@statewalker/webrun-modules@0.4.0':
     dependencies:
@@ -2711,26 +2704,22 @@ snapshots:
       semver: 7.8.5
       sucrase: 3.35.1
 
-  '@statewalker/webrun-rpc@0.4.3':
+  '@statewalker/webrun-rpc@0.14.0':
     dependencies:
-      '@statewalker/webrun-streams': 0.2.3
-
-  '@statewalker/webrun-rpc@0.5.1':
-    dependencies:
-      '@statewalker/webrun-streams': 0.2.3
+      '@statewalker/webrun-streams': 0.6.0
 
   '@statewalker/webrun-site-builder@0.3.0(@statewalker/webrun-files@0.12.0)':
     dependencies:
       '@statewalker/webrun-files': 0.12.0
 
-  '@statewalker/webrun-site-host@0.4.0(@statewalker/webrun-files@0.12.0)':
+  '@statewalker/webrun-site-host@0.5.0(@statewalker/webrun-files@0.12.0)':
     dependencies:
       '@statewalker/webrun-files': 0.12.0
       '@statewalker/webrun-files-mem': 0.12.0
-      '@statewalker/webrun-http-browser': 0.7.1
+      '@statewalker/webrun-http-browser': 0.16.0
       '@statewalker/webrun-site-builder': 0.3.0(@statewalker/webrun-files@0.12.0)
 
-  '@statewalker/webrun-streams@0.2.3': {}
+  '@statewalker/webrun-streams@0.6.0': {}
 
   '@sveltejs/acorn-typescript@1.0.13(acorn@8.18.0)':
     dependencies:
