@@ -179,7 +179,9 @@ describe("materializeDeps", () => {
         "/_m/",
       ),
     ).rejects.toThrow(/passwd\.css/);
-    expect(await output.exists("/_m/duck@1/../../../etc/passwd.css")).toBe(false);
+    // Where the traversal would have landed. (webrun-files 0.12 resolves `..` itself, so the
+    // literal path cannot be asked for: it climbs above the root and throws.)
+    expect(await output.exists("/etc/passwd.css")).toBe(false);
   });
 
   it("refuses a resource URL that traverses out of the base path", async () => {
