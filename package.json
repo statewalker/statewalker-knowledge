@@ -7,9 +7,12 @@
     "build": "pnpm -r run build",
     "test": "pnpm -r run test",
     "test:browser": "pnpm -r run test:browser",
+    "test:nightly": "pnpm --no-bail --workspace-concurrency=1 -r run test:browser",
     "typecheck": "pnpm -r run typecheck",
     "lint": "biome check --write .",
     "lint:check": "biome check .",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
     "changeset": "changeset"
   },
   "devDependencies": {

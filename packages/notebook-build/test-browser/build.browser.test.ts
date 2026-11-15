@@ -32,7 +32,7 @@ import { newDbClient, precomputeQueries } from "@statewalker/notebook-db";
 import { type FilesApi, writeText } from "@statewalker/webrun-files";
 import { MemFilesApi } from "@statewalker/webrun-files-mem";
 import { NodeFilesApi } from "@statewalker/webrun-files-node";
-import { newModuleServer } from "@statewalker/webrun-modules";
+import { type ModuleServer, newModuleServer } from "@statewalker/webrun-modules";
 import * as esbuild from "esbuild";
 import { JSDOM } from "jsdom";
 import { type Browser, chromium, type Page } from "playwright";
@@ -48,8 +48,20 @@ const STATIC_PORT = 8793;
 /**
  * notebook-kit's own stylesheet, at the URL the module server serves it from. A hosted site would
  * point `stylesUrl` here; a static export has to have copied it. See the note in `buildInto`.
+ *
+ * Derived from the version the module server resolves notebook-kit's runtime to (npm's newest
+ * match), never hard-coded: a pinned version went stale as soon as notebook-kit released again,
+ * and the static export, which materializes only the resolved version, then 404'd on it.
  */
-const STYLES_URL = `${BASE_PATH}@observablehq/notebook-kit@2.6.4/dist/src/styles/index.css`;
+async function stylesUrlOf(moduleServer: ModuleServer): Promise<string> {
+  const { url } = await moduleServer.resolve({
+    pkg: "@observablehq/notebook-kit",
+    subpath: "runtime",
+  });
+  const match = /^(.*\/@observablehq\/notebook-kit@[^/]+)\//.exec(url);
+  if (!match) throw new Error(`unexpected notebook-kit runtime URL: ${url}`);
+  return `${match[1]}/dist/src/styles/index.css`;
+}
 
 /**
  * Cell ids are 1-based, and the build round-trips the notebook through notebook-kit's
@@ -293,7 +305,7 @@ async function buildInto(moduleCache: FilesApi, mode: "hosted" | "static"): Prom
     // non-JS file at all, and deleting the entire union left all four of these tests GREEN —
     // the closure still contained 23 orphaned .css files that Chromium never asked for. Linking
     // notebook-kit's own stylesheet makes one of them load-bearing.
-    stylesUrl: STYLES_URL,
+    stylesUrl: await stylesUrlOf(moduleServer),
     onFailed: (f) => failures.push(...f),
   }).build();
 

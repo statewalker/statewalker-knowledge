@@ -1,0 +1,22 @@
+name: Nightly
+
+# The browser suites the CI of a pull request does not run (statewalker/statewalker-ci's
+# nightly.yml): root `test:nightly` runs the `test:browser` suites of notebook-db, notebook-site
+# and notebook-build, each to the end even when one fails. They drive a real Chromium through
+# Playwright and fetch npm packages through webrun-modules. A failure opens one `bug` +
+# `ci-baseline` issue here; later failures comment on it while it is open.
+
+on:
+  schedule:
+    - cron: "41 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  nightly:
+    uses: statewalker/statewalker-ci/.github/workflows/nightly.yml@main
+    with:
+      setup: pnpm --filter @statewalker/notebook-db exec playwright install --with-deps chromium
