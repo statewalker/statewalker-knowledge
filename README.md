@@ -108,9 +108,9 @@ Requirements: Node.js 24 and pnpm 10 through corepack. The pnpm version is pinne
 Packages are published to npm from CI with [changesets](https://github.com/changesets/changesets).
 A pull request may carry a changeset made with `pnpm changeset`; otherwise one is generated for
 each package whose packed contents differ from the version on npm.
-Every merge to `main` releases: after a green CI the `release` and `publish` jobs of
-`.github/workflows/ci.yml` apply the changesets, push the version commit and publish what npm lacks
-(trusted publishing with provenance). Each package ships `dist/`
+After a green CI on `main`, the `version` job of `.github/workflows/ci.yml` opens or updates a
+"chore: version packages" pull request that applies the changesets; merging it publishes what npm
+lacks (trusted publishing with provenance). Each package ships `dist/`
 (JavaScript and `.d.ts`) and its TypeScript sources in `src/`; `exports` point at `dist/`.
 
 ### License
