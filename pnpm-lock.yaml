@@ -23,7 +23,7 @@ catalogs:
       version: 0.1.6
     '@statewalker/db-duckdb-browser':
       specifier: ^0.1.1
-      version: 0.1.7
+      version: 0.1.8
     '@statewalker/webrun-files':
       specifier: ^0.10.0
       version: 0.10.5
@@ -137,7 +137,7 @@ importers:
         version: 1.33.1-dev57.0
       '@statewalker/db-duckdb-browser':
         specifier: 'catalog:'
-        version: 0.1.7
+        version: 0.1.8
       '@statewalker/notebook-db':
         specifier: workspace:^
         version: link:../notebook-db
@@ -179,7 +179,7 @@ importers:
         version: 0.1.6
       '@statewalker/db-duckdb-browser':
         specifier: 'catalog:'
-        version: 0.1.7
+        version: 0.1.8
       '@statewalker/webrun-files':
         specifier: 'catalog:'
         version: 0.10.5
@@ -450,6 +450,9 @@ packages:
 
   '@duckdb/duckdb-wasm@1.33.1-dev57.0':
     resolution: {integrity: sha512-ndn5l2EHq1PEMvCg8G6lRV0vjhSUcbqdM/niNBTTqH4/PyyUUVKbge0uUyCnj27b9SF/CiqBwDsgKLTqBvaxdw==}
+
+  '@duckdb/duckdb-wasm@1.33.1-dev65.0':
+    resolution: {integrity: sha512-qK8BQySzhixj5mY040Qs/aGJbF09B6dP5U8RyASndnk8HFdeWEQuOKeFm+7+cbVuLS78jaXLaFkdVpwVs1Ww8A==}
 
   '@esbuild/aix-ppc64@0.28.2':
     resolution: {integrity: sha512-XExcO+dvLKvVtNTibSTBej1NCAbaGhWn9Ww1ZPx80qsahhPFe/8jgWP0IchNe0F3HwkU7n8ejhH8bjonqht8mQ==}
@@ -822,8 +825,8 @@ packages:
   '@statewalker/db-api@0.1.6':
     resolution: {integrity: sha512-SokfgcyB9ZY5pWUUyxIMo1JsN7FOQGPLZVlMcoxrtwgk0jKeQMAfz2GKvihAJB/VFStqDk/bqgR07mDh+TxdQw==}
 
-  '@statewalker/db-duckdb-browser@0.1.7':
-    resolution: {integrity: sha512-kzRu+bDfPqM4EbOnNh3/MoDHJ6Tl8GOAaWDVWZsnPJNj2d1cjP+9n7+dups8zoT1UmwB4vUPaeuiQGAS6D9aiQ==}
+  '@statewalker/db-duckdb-browser@0.1.8':
+    resolution: {integrity: sha512-byBLQUWh0F2IGg5dlCLJXLcmateruCGHhFoK5P2+SBZjNBgqX7BZpsUeBk2ZByO2Vnh2ZMYmEgLot0M6AvtJeA==}
 
   '@statewalker/webrun-builder@0.3.1':
     resolution: {integrity: sha512-Ei+jNAiqu+7v3e47ldNZhB4ESXbH5TimUJZBq4hoKyGUmUfOYWSxfFPIVk/p7sJ7eBr8X2qLHWhJmWh3HyHemg==}
@@ -1736,6 +1739,10 @@ packages:
     resolution: {integrity: sha512-h6fhOIaRrID2CbEY2fqs+7t+UXZo+MLAnU5gRIq85uFtdiUPCdsApMlHhXogKVM4HM2DVbIjGNTTYH2OcmP1vA==}
     engines: {node: '>=0.6'}
 
+  qs@6.17.1:
+    resolution: {integrity: sha512-jd3COkaKVgGUW+ZHyEHCG9bH7RoaaiWuMgzsIBjUMVjLAaWGWpoUAVwljVvBHxRu/2qEHnadLGZrkutYUBPQJA==}
+    engines: {node: '>=0.6'}
+
   quansync@1.0.0:
     resolution: {integrity: sha512-5xZacEEufv3HSTPQuchrvV6soaiACMFnq1H8wkVioctoH3TRha9Sz66lOxRwPK/qZj7HPiSveih9yAyh98gvqA==}
 
@@ -2366,6 +2373,11 @@ snapshots:
       apache-arrow: 17.0.0
       qs: 6.16.0
 
+  '@duckdb/duckdb-wasm@1.33.1-dev65.0':
+    dependencies:
+      apache-arrow: 17.0.0
+      qs: 6.17.1
+
   '@esbuild/aix-ppc64@0.28.2':
     optional: true
 
@@ -2641,9 +2653,9 @@ snapshots:
 
   '@statewalker/db-api@0.1.6': {}
 
-  '@statewalker/db-duckdb-browser@0.1.7':
+  '@statewalker/db-duckdb-browser@0.1.8':
     dependencies:
-      '@duckdb/duckdb-wasm': 1.33.1-dev57.0
+      '@duckdb/duckdb-wasm': 1.33.1-dev65.0
       '@statewalker/db-api': 0.1.6
 
   '@statewalker/webrun-builder@0.3.1':
@@ -3439,6 +3451,11 @@ snapshots:
   punycode@2.3.1: {}
 
   qs@6.16.0:
+    dependencies:
+      es-define-property: 1.0.1
+      side-channel: 1.1.1
+
+  qs@6.17.1:
     dependencies:
       es-define-property: 1.0.1
       side-channel: 1.1.1
