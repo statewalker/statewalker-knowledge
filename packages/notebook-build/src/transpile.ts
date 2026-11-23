@@ -83,7 +83,13 @@ export const CODE_MODES = new Set<NotebookCellMode>(["js", "ts", "jsx", "tsx", "
  */
 export function transpileCell(cell: Cell, options: TranspileOptions): TranspiledJavaScript {
   const mode = cell.mode as NotebookCellMode;
-  if (mode === "jsx" || mode === "tsx") return transpileJsx(cell.value, mode, options);
+  if (mode === "jsx" || mode === "tsx") {
+    // notebook-kit's `transpile(cell)` applies these two attributes; the jsx path must too.
+    const t = transpileJsx(cell.value, mode, options);
+    if (cell.output) t.output = cell.output;
+    if (cell.hidden) t.autodisplay = false;
+    return t;
+  }
   return transpile(cell, options);
 }
 

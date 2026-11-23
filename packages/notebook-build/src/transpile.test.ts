@@ -139,6 +139,21 @@ const REACT_PINS = new Map([
 ]);
 
 describe("transpileNotebook, jsx and tsx cells", () => {
+  it("keeps a jsx/tsx cell's hidden and output attributes, as notebook-kit does for js", () => {
+    // Only HTML notebook sources (and callers building cells) carry these; Markdown fences do not.
+    const [hidden, named] = transpileNotebook(
+      toNotebook({
+        cells: [
+          { mode: "tsx", value: "<b>{1 as number}</b>", hidden: true },
+          { mode: "jsx", value: "<b>2</b>", output: "badge" },
+        ] as unknown as CellSpec[],
+      }),
+      REACT_PINS,
+    );
+    expect(hidden?.autodisplay).toBe(false);
+    expect(named?.output).toBe("badge");
+  });
+
   it("compiles JSX to calls into the pinned react/jsx-runtime", () => {
     const cell = transpileNotebook(
       parseMarkdown("```jsx\nconst Hello = () => <b>hi</b>;\n```\n"),
