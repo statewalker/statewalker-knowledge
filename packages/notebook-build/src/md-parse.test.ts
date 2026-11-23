@@ -19,6 +19,14 @@ describe("parseMarkdown", () => {
     expect(nb.cells.map((c) => c.mode)).toEqual(expect.arrayContaining(["ts", "sql"]));
   });
 
+  it("turns jsx and tsx fences into jsx and tsx cells", () => {
+    const nb = parseMarkdown("```jsx\n<b>hi</b>\n```\n\n```tsx\nconst n: number = 1;\n```\n");
+    expect(nb.cells.map((c) => [c.mode, c.value])).toEqual([
+      ["jsx", "<b>hi</b>"],
+      ["tsx", "const n: number = 1;"],
+    ]);
+  });
+
   it("keeps prose between code blocks as md cells, in document order", () => {
     const nb = parseMarkdown("# T\n\nfirst\n\n```js\n1\n```\n\nsecond\n");
     expect(nb.cells.map((c) => c.mode)).toEqual(["md", "js", "md"]);

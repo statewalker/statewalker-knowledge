@@ -3,7 +3,7 @@
 ## What it is
 
 Turns a tree of notebooks on a `FilesApi` (`@statewalker/webrun-files`) into a static site of
-executable pages, incrementally. A notebook is a Markdown file (fenced `js`/`ts`/`ojs`/`sql`
+executable pages, incrementally. A notebook is a Markdown file (fenced `js`/`ts`/`jsx`/`tsx`/`ojs`/`sql`
 blocks become cells, everything else is prose) or an
 [Observable notebook-kit](https://github.com/observablehq/notebook-kit) HTML document. Each one
 becomes an `.html` page that imports notebook-kit's runtime and runs its own cell graph in the
@@ -153,7 +153,7 @@ successful build is retried on the next run without its source being touched.
 
 ### Cell modes
 
-`js`, `ts`, `ojs` and `sql` cells are compiled and run in the page. The other modes render as
+`js`, `ts`, `jsx`, `tsx`, `ojs` and `sql` cells are compiled and run in the page. The other modes render as
 inert prose, because their compiled body cannot run in a page this build produces:
 
 | mode | why it stays prose |
@@ -161,6 +161,39 @@ inert prose, because their compiled body cannot run in a page this build produce
 | `html`, `tex`, `dot`, `sql.view` | They need the `htl`, `tex`, `dot` and `Inputs` builtins, which notebook-kit loads from `cdn.jsdelivr.net`. A static export must not depend on a CDN. |
 | `node`, `python`, `r` | Data-loader cells: `Interpreter(…).run(src)` fetches `.observable/cache/<hash>.bin`, produced by a build-time interpreter stage this build does not have. Every such cell would 404. |
 | `md` | Rendered at build time with markdown-it into the document body, so prose is readable with JavaScript off. |
+
+### TypeScript and React cells
+
+A ` ```ts ` cell goes through notebook-kit's own `ts` mode, which erases types without a
+transform and refuses the syntax that is not erasable (enums, namespaces, parameter properties).
+
+notebook-kit has no `jsx` or `tsx` mode, so this package adds them:
+
+```tsx
+const Greeting = ({ name }: { name: string }) => <strong>Hello, {name}</strong>;
+```
+
+```tsx
+<Greeting name="world" />
+```
+
+- The cell is compiled with [sucrase](https://github.com/alangpierce/sucrase): types erased
+  (enums included, in `tsx`), JSX turned into calls to `react/jsx-runtime` (the automatic
+  runtime, React as the import source), as Observable Framework does with esbuild. Sucrase is
+  plain JavaScript with a synchronous transform, so the build still runs in a browser and
+  `transpileNotebook` stays synchronous; `@statewalker/webrun-modules` uses it for the same job.
+- `react`, `react/jsx-runtime` and `react-dom/client` are imported by the compiled cell and
+  resolved by `resolveNotebook` like any other npm import, so a static export carries them.
+  The jsx runtime's helpers are bound inside the cell, never declared, so any number of jsx
+  cells can sit in one notebook.
+- An expression cell whose value is a React element, and a React element passed to `display`,
+  is rendered with `react-dom/client`'s `createRoot` into a `<div>` that notebook-kit displays.
+  Any other value displays as it would in a `js` cell.
+- In the serialized notebook (the cache artifact) the two modes are `<script type="text/jsx">`
+  and `<script type="text/tsx">`. Observable Desktop reads both as `js`.
+
+Which fence names run, beyond these (a ` ```typescript ` or ` ```javascript ` fence runs today),
+is not settled here.
 
 ### SQL cells
 

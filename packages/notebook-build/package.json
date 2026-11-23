@@ -34,7 +34,8 @@
   },
   "dependencies": {
     "@observablehq/notebook-kit": "catalog:",
-    "markdown-it": "catalog:"
+    "markdown-it": "catalog:",
+    "sucrase": "catalog:"
   },
   "devDependencies": {
     "@duckdb/duckdb-wasm": "catalog:",

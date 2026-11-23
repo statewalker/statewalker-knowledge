@@ -63,6 +63,9 @@ catalogs:
     playwright:
       specifier: ^1.63.0
       version: 1.63.0
+    sucrase:
+      specifier: ^3.35.1
+      version: 3.35.1
     tsdown:
       specifier: ^0.23.0
       version: 0.23.0
@@ -72,6 +75,19 @@ catalogs:
     vitest:
       specifier: ^5.0.3
       version: 5.0.3
+  peers:
+    '@statewalker/webrun-builder':
+      specifier: ^0.5.0
+      version: 0.5.0
+    '@statewalker/webrun-files':
+      specifier: ^0.12.0
+      version: 0.12.0
+    '@statewalker/webrun-modules':
+      specifier: ^0.4.0
+      version: 0.4.0
+    '@statewalker/webrun-site-builder':
+      specifier: ^0.3.0
+      version: 0.3.0
 
 importers:
 
@@ -131,6 +147,9 @@ importers:
       markdown-it:
         specifier: 'catalog:'
         version: 15.0.2
+      sucrase:
+        specifier: 'catalog:'
+        version: 3.35.1
     devDependencies:
       '@duckdb/duckdb-wasm':
         specifier: 'catalog:'

@@ -130,3 +130,69 @@ describe("transpileNotebook, the modes that stay inert", () => {
     });
   }
 });
+
+/** The URLs a module server would pin React's three entry points to. */
+const REACT_PINS = new Map([
+  ["react", "/_m/react@19/index.js"],
+  ["react/jsx-runtime", "/_m/react@19/jsx-runtime.js"],
+  ["react-dom/client", "/_m/react-dom@19/client.js"],
+]);
+
+describe("transpileNotebook, jsx and tsx cells", () => {
+  it("compiles JSX to calls into the pinned react/jsx-runtime", () => {
+    const cell = transpileNotebook(
+      parseMarkdown("```jsx\nconst Hello = () => <b>hi</b>;\n```\n"),
+      REACT_PINS,
+    )[0]!;
+    expect(cell.error).toBeUndefined();
+    expect(cell.body).toContain('import("/_m/react@19/jsx-runtime.js")');
+    expect(cell.body).not.toContain("<b>");
+    // Only what the author declared: the runtime's helpers are bound inside the cell, so two
+    // jsx cells never both declare them.
+    expect(cell.outputs).toEqual(["Hello"]);
+    expect(cell.inputs).toEqual([]);
+  });
+
+  it("displays an expression cell's value, as a js expression cell is", () => {
+    const [expression, program] = transpileNotebook(
+      parseMarkdown("```jsx\n<b>hi</b>\n```\n\n```jsx\nconst b = <b>hi</b>;\n```\n"),
+      REACT_PINS,
+    );
+    expect(expression!.autodisplay).toBe(true);
+    expect(program!.autodisplay).toBe(false);
+  });
+
+  it("records a syntax error at its line in the cell", () => {
+    const cell = transpileNotebook(
+      parseMarkdown("```tsx\nconst x: number = <b>;\n```\n"),
+      REACT_PINS,
+    )[0]!;
+    expect(cell.body).toBe("");
+    expect(cell.error).toMatch(/\(1:\d+\)$/);
+  });
+
+  it("erases a tsx cell's types and compiles its JSX", () => {
+    const cell = transpileNotebook(
+      parseMarkdown(
+        "```tsx\nconst n: number = 2;\nconst El = (p: {n: number}) => <i>{p.n}</i>;\n```\n",
+      ),
+      REACT_PINS,
+    )[0]!;
+    expect(cell.error).toBeUndefined();
+    expect(cell.body).not.toMatch(/: number/);
+    expect(cell.body).not.toContain("<i>");
+    expect(cell.outputs).toEqual(["n", "El"]);
+  });
+});
+
+describe("transpileNotebook, ts cells", () => {
+  it("erases types", () => {
+    const cell = transpileNotebook(
+      parseMarkdown("```ts\nconst n: number = 2;\ntype T = string;\n```\n"),
+      new Map(),
+    )[0]!;
+    expect(cell.error).toBeUndefined();
+    expect(cell.body).not.toMatch(/: number|type T/);
+    expect(cell.outputs).toEqual(["n"]);
+  });
+});

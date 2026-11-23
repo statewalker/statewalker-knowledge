@@ -115,6 +115,27 @@ const BROKEN_MD = [
 ].join("\n");
 
 /**
+ * React cells: cell 1 (jsx) declares a component, cell 2 (tsx, with a type assertion to erase)
+ * is an expression whose value is a React element, cell 3 (jsx) hands one to `display`. Both must come out as rendered DOM, not
+ * as the inspector's view of an element object: the assertions look for the `<strong>` React
+ * renders. Two jsx cells also prove the jsx-runtime helpers are not declared by every cell.
+ */
+const REACT_MD = [
+  "```jsx",
+  'const Greeting = ({name}) => <strong className="greeting">Hello, {name}</strong>;',
+  "```",
+  "",
+  "```tsx",
+  '<Greeting name={"tsx" as string} />',
+  "```",
+  "",
+  "```jsx",
+  'display(<Greeting name="display" />);',
+  "```",
+  "",
+].join("\n");
+
+/**
  * SQL-cell fixtures. Both notebooks are notebook-kit HTML sources rather than Markdown,
  * because `parseMarkdown` has no syntax for a cell's `database` or `output` attributes and
  * those two attributes are the entire difference between the modes under test.
@@ -279,6 +300,7 @@ async function newSources(): Promise<FilesApi> {
   const notebooks = new MemFilesApi();
   await writeText(notebooks, "/chart.md", CHART_MD);
   await writeText(notebooks, "/broken.md", BROKEN_MD);
+  await writeText(notebooks, "/react.md", REACT_MD);
   await writeText(notebooks, "/reports/q3.html", Q3_HTML);
   await writeText(notebooks, "/live.html", LIVE_HTML);
   return notebooks;
@@ -448,6 +470,21 @@ describe("a built notebook page in a real browser", () => {
       expect(await page.locator("#cell-2 .cell-error").count()).toBe(1);
       // The cell AFTER the broken one still ran, and it still sees `ok` from the cell before it.
       expect(await page.locator("#cell-3").textContent()).toContain("3");
+      await page.close();
+    }, 120_000);
+
+    it(`renders jsx and tsx cells as React (${label})`, async () => {
+      const { page, errors, offOrigin } = await open(`${origin}/react.html`, origin);
+      for (const id of ["cell-2", "cell-3"]) {
+        await page
+          .waitForSelector(`#${id} strong.greeting`, { timeout: 60_000 })
+          .catch(() => undefined);
+      }
+
+      expect(errors).toEqual([]);
+      if (label === "static") expect(offOrigin).toEqual([]);
+      expect(await page.locator("#cell-2 strong.greeting").textContent()).toBe("Hello, tsx");
+      expect(await page.locator("#cell-3 strong.greeting").textContent()).toBe("Hello, display");
       await page.close();
     }, 120_000);
 

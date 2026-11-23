@@ -33,6 +33,17 @@ describe("copyAttachments", () => {
     expect(await output.exists("/deep/nested/x.json")).toBe(true);
   });
 
+  it("copies a FileAttachment referenced by a tsx cell", async () => {
+    const source = new MemFilesApi();
+    const output = new MemFilesApi();
+    await writeText(source, "/data.csv", "a\n1\n");
+    const nb = parseMarkdown(
+      '```tsx\nconst rows: string = await FileAttachment("data.csv").text();\n<pre>{rows}</pre>;\n```\n',
+    );
+    const written = await copyAttachments(nb, source, output, "/index.md");
+    expect(written.map((a) => a.path)).toEqual(["/data.csv"]);
+  });
+
   it("reports a missing attachment by name rather than writing an empty file", async () => {
     const nb = parseMarkdown('# T\n\n```js\nFileAttachment("gone.csv");\n```\n');
     await expect(
