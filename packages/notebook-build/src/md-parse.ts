@@ -5,13 +5,19 @@ import {
   toNotebook,
 } from "@observablehq/notebook-kit";
 import MarkdownIt from "markdown-it";
+import type { NotebookCellMode } from "./transpile.js";
 
-/** Fence languages that map onto a notebook-kit cell mode. Anything else stays prose. */
-const FENCE_MODES: Record<string, CellMode> = {
+/**
+ * Fence languages that map onto a cell mode. Anything else stays prose. `jsx` and `tsx` are this
+ * package's own modes (notebook-kit has none): see `NotebookCellMode`.
+ */
+const FENCE_MODES: Record<string, NotebookCellMode> = {
   js: "js",
   javascript: "js",
   ts: "ts",
   typescript: "ts",
+  jsx: "jsx",
+  tsx: "tsx",
   ojs: "ojs",
   sql: "sql",
   html: "html",
@@ -64,7 +70,10 @@ export function parseMarkdown(source: string): Notebook {
       const mode = FENCE_MODES[(token.info ?? "").trim().split(/\s+/)[0]?.toLowerCase() ?? ""];
       if (mode) {
         flushProse();
-        cells.push({ id: id++, mode, value: token.content.replace(/\n$/, "") });
+        // notebook-kit's `CellMode` has no jsx/tsx; the cell carries it anyway (`toNotebook`
+        // copies the mode through), and every stage of this package reads it as
+        // `NotebookCellMode`.
+        cells.push({ id: id++, mode: mode as CellMode, value: token.content.replace(/\n$/, "") });
         continue;
       }
     }

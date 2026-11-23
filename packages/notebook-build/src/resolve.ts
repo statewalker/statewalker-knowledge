@@ -1,5 +1,5 @@
-import { type Notebook, transpile } from "@observablehq/notebook-kit";
-import { CODE_MODES } from "./transpile.js";
+import type { Notebook } from "@observablehq/notebook-kit";
+import { CODE_MODES, type NotebookCellMode, transpileCell } from "./transpile.js";
 
 export type PinMap = ReadonlyMap<string, string>;
 
@@ -48,9 +48,9 @@ export class ResolveError extends Error {
 export function collectSpecifiers(nb: Notebook): string[] {
   const seen = new Set<string>();
   for (const cell of nb.cells) {
-    if (!CODE_MODES.has(cell.mode)) continue;
+    if (!CODE_MODES.has(cell.mode as NotebookCellMode)) continue;
     try {
-      transpile(cell.value, cell.mode, {
+      transpileCell(cell, {
         resolveImport: (s: string) => {
           seen.add(s);
           return s;

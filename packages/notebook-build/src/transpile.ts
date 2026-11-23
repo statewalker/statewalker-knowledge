@@ -1,5 +1,20 @@
-import { type Cell, type CellMode, type Notebook, transpile } from "@observablehq/notebook-kit";
+import {
+  type Cell,
+  type CellMode,
+  type Notebook,
+  type TranspiledJavaScript,
+  type TranspileOptions,
+  transpile,
+} from "@observablehq/notebook-kit";
+import { transpileJsx } from "./jsx.js";
 import type { PinMap } from "./resolve.js";
+
+/**
+ * A cell's mode as this package reads it: notebook-kit's `CellMode` plus `jsx` and `tsx`, which
+ * notebook-kit has no mode for. They travel in a notebook-kit `Notebook` under a cast, and
+ * `serializeNotebook`/`parseNotebookHtml` keep them across the cache artifact.
+ */
+export type NotebookCellMode = CellMode | "jsx" | "tsx";
 
 export interface CellDefinition {
   id: number;
@@ -15,7 +30,7 @@ export interface CellDefinition {
    */
   output?: string;
   autodisplay: boolean;
-  mode: CellMode;
+  mode: NotebookCellMode;
   /** Set when the cell did not compile; the page renders this in its place. */
   error?: string;
 }
@@ -25,7 +40,9 @@ export interface CellDefinition {
  * must gate on the SAME set: two copies drifted apart is precisely how a widened transpile
  * yields cells that compile and are then rendered as prose.
  *
- * Why `sql` and nothing else, measured against the installed notebook-kit 2.6.4 rather than
+ * `jsx` and `tsx` are this package's own modes, compiled by `transpileJsx` (see `jsx.ts`).
+ *
+ * Of notebook-kit's other modes, why `sql` and nothing else, measured against the installed notebook-kit 2.6.4 rather than
  * inferred — `transpile()` returns a real body for EVERY mode below, so "notebook-kit supports
  * it" is not the test. The test is whether the body can run in a page this build produces:
  *
@@ -54,7 +71,27 @@ export interface CellDefinition {
  * own Vite plugin sets `displayMode: "table"` for `sql` cells, and that is the `inputs.js`
  * CDN path above. SQL results render through the default inspector here.
  */
-export const CODE_MODES = new Set<CellMode>(["js", "ts", "ojs", "sql"]);
+export const CODE_MODES = new Set<NotebookCellMode>(["js", "ts", "jsx", "tsx", "ojs", "sql"]);
+
+/**
+ * Compiles one code cell: notebook-kit's `transpile` for its own modes, `transpileJsx` for
+ * `jsx`/`tsx`. Shared with `collectSpecifiers`, so the imports a jsx cell's compiled body makes
+ * (React's) are the ones `resolveNotebook` pins, and `copyAttachments` sees the attachments it
+ * names. `ts` stays with notebook-kit, which erases
+ * types without a transform (and refuses the non-erasable syntax: enums, namespaces,
+ * parameter properties).
+ */
+export function transpileCell(cell: Cell, options: TranspileOptions): TranspiledJavaScript {
+  const mode = cell.mode as NotebookCellMode;
+  if (mode === "jsx" || mode === "tsx") {
+    // notebook-kit's `transpile(cell)` applies these two attributes; the jsx path must too.
+    const t = transpileJsx(cell.value, mode, options);
+    if (cell.output) t.output = cell.output;
+    if (cell.hidden) t.autodisplay = false;
+    return t;
+  }
+  return transpile(cell, options);
+}
 
 /**
  * Transpiles every code cell in `nb` against the module pin map produced by `resolveNotebook`.
@@ -70,7 +107,7 @@ export function transpileNotebook(nb: Notebook, pins: PinMap): CellDefinition[] 
   const resolveImport = (specifier: string) => pins.get(specifier) ?? specifier;
 
   return nb.cells.map((cell: Cell): CellDefinition => {
-    if (!CODE_MODES.has(cell.mode)) {
+    if (!CODE_MODES.has(cell.mode as NotebookCellMode)) {
       // Prose cells, and every mode deliberately left out of CODE_MODES above, pass through
       // with empty inputs/outputs and no `output`, so the renderer lays them out in document
       // order as prose alongside code cells.
@@ -84,7 +121,7 @@ export function transpileNotebook(nb: Notebook, pins: PinMap): CellDefinition[] 
       };
     }
     try {
-      const t = transpile(cell, { resolveImport });
+      const t = transpileCell(cell, { resolveImport });
       return {
         id: cell.id,
         body: t.body,

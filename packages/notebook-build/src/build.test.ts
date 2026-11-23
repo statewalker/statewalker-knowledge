@@ -128,6 +128,31 @@ describe("newNotebookBuild", () => {
     expect(page).not.toContain('import(\\"npm:d3-array\\")');
   });
 
+  it("builds jsx and tsx cells against React pinned by the module server", async () => {
+    const notebooks = new MemFilesApi();
+    await writeText(
+      notebooks,
+      "/r.md",
+      "# R\n\n```jsx\nconst Hello = () => <b>hi</b>;\n```\n\n```tsx\nconst n: number = 2;\n<Hello />;\n```\n",
+    );
+    const output = new MemFilesApi();
+    const failures: NotebookFailure[] = [];
+    const { server, calls } = fakeServer();
+    await build(notebooks, output, {
+      moduleServer: server,
+      onFailed: (f) => failures.push(...f),
+    }).build();
+
+    expect(failures).toEqual([]);
+    expect(calls).toEqual(expect.arrayContaining(["resolve react", "resolve react-dom"]));
+    const page = await readText(output, "/r.html");
+    expect(page).toContain('import("/_m/react@1/index.js")');
+    expect(page).toContain('import("/_m/react-dom@1/index.js")');
+    expect(page).not.toContain("<b>");
+    expect(page).not.toContain(": number");
+    expect(page).toContain('"outputs":["Hello"]');
+  });
+
   it("notifies with the changed paths on convergence", async () => {
     const notebooks = await seed();
     const changed: string[][] = [];

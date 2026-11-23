@@ -1,8 +1,8 @@
-import { type Notebook, transpile } from "@observablehq/notebook-kit";
+import type { Notebook } from "@observablehq/notebook-kit";
 import { dirname, type FilesApi, readFile } from "@statewalker/webrun-files";
 import { contentHash } from "./hash.js";
 import { resolveWithin } from "./paths.js";
-import { CODE_MODES } from "./transpile.js";
+import { CODE_MODES, transpileCell } from "./transpile.js";
 
 /** One copied attachment: where it landed, and the hash of the bytes that were copied. */
 export interface CopiedAttachment {
@@ -31,7 +31,7 @@ function collectAttachmentNames(nb: Notebook): string[] {
   for (const cell of nb.cells) {
     if (!CODE_MODES.has(cell.mode)) continue;
     try {
-      const t = transpile(cell.value, cell.mode, { resolveFiles: true });
+      const t = transpileCell(cell, { resolveFiles: true });
       for (const name of t.files ?? []) seen.add(name);
     } catch {
       // A cell that does not parse has no resolvable attachments. A later stage is where

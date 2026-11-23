@@ -2,6 +2,7 @@ import { deserialize } from "@observablehq/notebook-kit";
 import { JSDOM } from "jsdom";
 import { describe, expect, it } from "vitest";
 import { parseMarkdown } from "./md-parse.js";
+import { parseNotebookHtml } from "./parse.js";
 import { notebookHash, serializeNotebook } from "./serialize.js";
 
 /** Under Node there is no DOM; the browser injects its own natives instead. */
@@ -41,6 +42,19 @@ describe("serializeNotebook", () => {
     const once = serializeNotebook(nb, dom);
     const twice = serializeNotebook(deserialize(once, { parser: dom.parser }), dom);
     expect(twice).toBe(once);
+  });
+
+  it("keeps jsx and tsx cells across the round trip, as a fixed point", () => {
+    const dom = nodeDom();
+    const nb = parseMarkdown(
+      "# T\n\n```jsx\n<b>a</b>\n```\n\n```js\n1\n```\n\n```tsx\nconst s = '</script>';\n```\n",
+    );
+    const once = serializeNotebook(nb, dom);
+    const back = parseNotebookHtml(once, dom);
+    expect(back.cells.map((c) => [c.id, c.mode, c.value])).toEqual(
+      nb.cells.map((c) => [c.id, c.mode, c.value]),
+    );
+    expect(serializeNotebook(back, dom)).toBe(once);
   });
 
   it("produces a document Observable Desktop would recognise", () => {

@@ -39,6 +39,13 @@ describe("collectSpecifiers", () => {
     expect(collectSpecifiers(nb)).toEqual(["npm:d3-array"]);
   });
 
+  it("finds the React modules a jsx cell's compiled body imports, beside the cell's own", () => {
+    const nb = parseMarkdown('```jsx\nimport {Chart} from "npm:charts";\n<Chart />;\n```\n');
+    expect(new Set(collectSpecifiers(nb))).toEqual(
+      new Set(["npm:charts", "react/jsx-runtime", "react", "react-dom/client"]),
+    );
+  });
+
   it("ignores cells that are not code", () => {
     expect(collectSpecifiers(parseMarkdown("# T\n\njust prose\n"))).toEqual([]);
   });
