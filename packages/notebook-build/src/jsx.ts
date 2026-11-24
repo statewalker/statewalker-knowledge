@@ -3,7 +3,9 @@ import {
   type TranspileOptions,
   transpile,
 } from "@observablehq/notebook-kit";
+import MagicString from "magic-string";
 import { transform } from "sucrase";
+import { composeMaps, mapOf, mapOfRewrite, type SourceMapV3, type StageMap } from "./source-map.js";
 
 const JSX_RUNTIME = "react/jsx-runtime";
 const REACT = "react";
@@ -37,18 +39,25 @@ const NAMESPACES: Record<string, string> = {
  * The wrapper also displays React: a cell whose value is a React element (an expression cell),
  * or a value handed to `display`, is rendered with `react-dom/client`'s `createRoot` into a
  * `<div>` that notebook-kit then displays, as Framework's `displayJsx` does.
+ *
+ * Given `sourceName`, the result also carries `map`, a v3 source map from the body to `source`
+ * composed from each stage's: sucrase's own (`sourceMapOptions`), magic-string's for the line
+ * shift, the prefix cut and the wrapper, and notebook-kit's edits recovered by `mapOfRewrite`.
  */
 export function transpileJsx(
   source: string,
   mode: "jsx" | "tsx",
   options: TranspileOptions = {},
-): TranspiledJavaScript {
+  sourceName?: string,
+): TranspiledJavaScript & { map?: SourceMapV3 } {
   // The source goes in one line down, so sucrase's import prefix has line 1 to itself and is cut
   // off exactly: matching import declarations at the head of the output instead would also
   // take the author's own first `import` with it.
+  const shifted = new MagicString(source).prepend("\n");
   let code: string;
+  let sucraseMap: StageMap | undefined;
   try {
-    ({ code } = transform(`\n${source}`, {
+    ({ code, sourceMap: sucraseMap } = transform(shifted.toString(), {
       transforms: mode === "tsx" ? ["jsx", "typescript"] : ["jsx"],
       jsxRuntime: "automatic",
       jsxImportSource: REACT,
@@ -57,16 +66,24 @@ export function transpileJsx(
       disableESTransforms: true,
       // A notebook cell's import is how other cells see the name; it is never "unused".
       keepUnusedImports: true,
+      ...(sourceName === undefined
+        ? {}
+        : { filePath: "sucrase-in", sourceMapOptions: { compiledFilename: "sucrase-out" } }),
     }));
   } catch (e) {
-    // Report the line in the cell, not in the shifted source.
-    const message = String((e as Error)?.message ?? e);
+    // Report the line in the cell, not in the shifted source, and without the file name sucrase
+    // prefixes once it is given one (`filePath`, for the map).
+    const message = String((e as Error)?.message ?? e).replace(
+      /^Error transforming sucrase-in: /,
+      "",
+    );
     throw new SyntaxError(
       message.replace(/\((\d+):(\d+)\)$/, (_, line, column) => `(${Number(line) - 1}:${column})`),
     );
   }
   const newline = code.indexOf("\n");
   const prefix = code.slice(0, newline);
+  const cut = new MagicString(code).remove(0, newline + 1);
   const helpers = new Map<string, string>();
   for (const [, specifiers = "", from = ""] of prefix.matchAll(
     /import \{([^}]*)\} from "([^"]*)";/g,
@@ -77,7 +94,8 @@ export function transpileJsx(
     }
   }
 
-  const t = transpile(code.slice(newline + 1), "js", options);
+  const kitInput = cut.toString();
+  const t = transpile(kitInput, "js", options);
   const inputs = (t.inputs ?? []).filter((name) => !helpers.has(name));
   const args = (t.inputs ?? []).map(
     (name) => helpers.get(name) ?? (name === "display" ? "__displayReact" : name),
@@ -85,22 +103,43 @@ export function transpileJsx(
   const url = (specifier: string) =>
     JSON.stringify(options.resolveImport ? options.resolveImport(specifier) : specifier);
 
-  const body = [
-    `async (${inputs.join(", ")}) => {`,
-    `const [__jsxRuntime, __react, __reactDom] = await Promise.all([import(${url(JSX_RUNTIME)}), import(${url(REACT)}), import(${url(REACT_DOM_CLIENT)})]);`,
-    "const __node = (value) => {",
-    "if (!__react.isValidElement(value)) return value;",
-    'const node = document.createElement("div");',
-    "__reactDom.createRoot(node).render(value);",
-    "return node;",
-    "};",
-    ...(inputs.includes("display")
-      ? ["const __displayReact = (value) => display(__node(value));"]
-      : []),
-    `const __value = await (${t.body})(${args.join(", ")});`,
-    `return ${t.autodisplay ? "__node(__value)" : "__value"};`,
-    "}",
-  ].join("\n");
+  const wrapped = new MagicString(t.body)
+    .prepend(
+      [
+        `async (${inputs.join(", ")}) => {`,
+        `const [__jsxRuntime, __react, __reactDom] = await Promise.all([import(${url(JSX_RUNTIME)}), import(${url(REACT)}), import(${url(REACT_DOM_CLIENT)})]);`,
+        "const __node = (value) => {",
+        "if (!__react.isValidElement(value)) return value;",
+        'const node = document.createElement("div");',
+        "__reactDom.createRoot(node).render(value);",
+        "return node;",
+        "};",
+        ...(inputs.includes("display")
+          ? ["const __displayReact = (value) => display(__node(value));"]
+          : []),
+        "const __value = await (",
+      ].join("\n"),
+    )
+    .append(
+      [
+        `)(${args.join(", ")});`,
+        `return ${t.autodisplay ? "__node(__value)" : "__value"};`,
+        "}",
+      ].join("\n"),
+    );
+  const body = wrapped.toString();
+  if (sourceName === undefined || !sucraseMap) return { ...t, body, inputs };
 
-  return { ...t, body, inputs };
+  const map = composeMaps(
+    [
+      mapOf(wrapped, "kit-out"),
+      mapOfRewrite(kitInput, t.body, "kit-in"),
+      mapOf(cut, "sucrase-out"),
+      sucraseMap,
+      mapOf(shifted, "source"),
+    ],
+    sourceName,
+    source,
+  );
+  return map ? { ...t, body, inputs, map } : { ...t, body, inputs };
 }

@@ -177,6 +177,11 @@ describe("transpileNotebook, jsx and tsx cells", () => {
     expect(program!.autodisplay).toBe(false);
   });
 
+  it("reports sucrase's error text as 0.4.0 did, without a file name", () => {
+    const cell = transpileNotebook(parseMarkdown("```jsx\n<div>\n```\n"), REACT_PINS)[0]!;
+    expect(cell.error).toBe("Unterminated JSX contents (1:6)");
+  });
+
   it("records a syntax error at its line in the cell", () => {
     const cell = transpileNotebook(
       parseMarkdown("```tsx\nconst x: number = <b>;\n```\n"),

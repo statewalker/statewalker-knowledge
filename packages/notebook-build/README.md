@@ -105,7 +105,7 @@ const html = renderPage(nb, cells, { runtimeUrl }); // runtimeUrl: notebook-kit'
 | `serializeNotebook(nb, dom)`, `notebookHash(html)` | Serialize a `Notebook` to notebook-kit HTML; hash that HTML. |
 | `collectSpecifiers(nb)`, `isNpmSpecifier(s)`, `toModuleRef(s)` | Find a notebook's import specifiers and turn `npm:` ones into module refs. |
 | `resolveNotebook(nb, { moduleServer }, notebookPath)` | Resolve every npm import to a pinned URL (`PinMap`). Throws `ResolveError`. |
-| `transpileNotebook(nb, pins)` | Compile the code cells to `CellDefinition[]`. |
+| `transpileNotebook(nb, pins, { sourceName })` | Compile the code cells to `CellDefinition[]`, each with a source map of its body (`map`). |
 | `renderPage(nb, cells, { runtimeUrl, stylesUrl })` | Render the page HTML. |
 | `copyAttachments(nb, source, output, notebookPath)` | Copy the `FileAttachment`s a notebook references; returns `CopiedAttachment[]` (path and hash). |
 | `materializeDeps(pins, server, output, basePath)`, `ASSET_EXTENSIONS` | Write the static dependency closure into `output`. |
@@ -195,6 +195,33 @@ const Greeting = ({ name }: { name: string }) => <strong>Hello, {name}</strong>;
 Which fence names run, beyond these (a ` ```typescript ` or ` ```javascript ` fence runs today),
 is not settled here.
 
+### Source maps of compiled cells
+
+Each compiled cell's `CellDefinition` carries `map`, a version 3 source map from its `body` to
+the cell's source (`cell.value`):
+
+```ts
+const [cell] = transpileNotebook(nb, pins, { sourceName: (c) => `plots.md#cell-${c.id}` });
+cell.map; // { version: 3, sources: ["plots.md#cell-1"], sourcesContent: [cell source], names, mappings }
+```
+
+The one source is named `cell-<id>` unless `sourceName` says otherwise, so a caller composes it
+with maps of its own (cell source to Markdown, page script to cell body) through
+`@jridgewell/remapping`. Prose cells and cells that did not compile have no `map`.
+
+The map is composed from each stage's: sucrase's own for `jsx`/`tsx`, magic-string's for this
+package's edits (the cut of sucrase's import line, the React wrapper), and notebook-kit's edits,
+which `transpile` makes but returns no map of. Those are recovered from a diff of its input and
+output (lines, then the characters of each edited line) and replayed onto a magic-string, which
+must rebuild the body exactly. When it does not, or the cell is too long to diff (beyond about
+2,000 lines, or diffs over a fixed budget of work), that stage's map is line-only: each line
+kept or edited in place maps to its line, at column 0. A map that cannot be composed is left
+out; the cell still compiles.
+
+Two limits come from sucrase 3.35.1: the first token inside a JSX `{...}` maps to the brace, and
+after an element with a `key` prop the columns of the rest of the cell are lost (lines stay
+right).
+
 ### SQL cells
 
 A SQL cell's `database` and `output` attributes decide how it runs, and only a notebook-kit HTML
@@ -241,6 +268,7 @@ Each failure is reported through `onFailed` for its notebook; the other notebook
 
 - `@observablehq/notebook-kit`: parsing, serialization, transpilation and the page runtime.
 - `markdown-it`: renders prose cells at build time.
+- `magic-string`, `@jridgewell/remapping`: the cells' source maps.
 - `@statewalker/webrun-builder` (peer, `^0.3.1 || ^0.4.0`): the incremental build engine. The build is two builders over it: `Notebook` (one task per source: parse, serialize, freshness gate) and `Page` (render; its `dispose` prunes a removed notebook's outputs). The engine's state lives under `notebooks/.notebook-build/engine`.
 - `@statewalker/webrun-files` (peer): the storage interface.
 - `@statewalker/webrun-modules` (peer): the module server the build expects.
