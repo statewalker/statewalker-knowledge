@@ -71,8 +71,12 @@ export function transpileJsx(
         : { filePath: "sucrase-in", sourceMapOptions: { compiledFilename: "sucrase-out" } }),
     }));
   } catch (e) {
-    // Report the line in the cell, not in the shifted source.
-    const message = String((e as Error)?.message ?? e);
+    // Report the line in the cell, not in the shifted source, and without the file name sucrase
+    // prefixes once it is given one (`filePath`, for the map).
+    const message = String((e as Error)?.message ?? e).replace(
+      /^Error transforming sucrase-in: /,
+      "",
+    );
     throw new SyntaxError(
       message.replace(/\((\d+):(\d+)\)$/, (_, line, column) => `(${Number(line) - 1}:${column})`),
     );
@@ -137,5 +141,5 @@ export function transpileJsx(
     sourceName,
     source,
   );
-  return { ...t, body, inputs, map };
+  return map ? { ...t, body, inputs, map } : { ...t, body, inputs };
 }

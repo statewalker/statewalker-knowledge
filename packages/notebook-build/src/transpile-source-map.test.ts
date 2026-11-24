@@ -244,4 +244,63 @@ describe("transpileNotebook, source maps", () => {
     );
     expect(cells.map((c) => c.map)).toEqual([undefined, undefined]);
   });
+
+  // notebook-kit's import header ends with a `});` line, which shares only `);` with an edited
+  // line after it; pairing the two left the edited line unmapped.
+  for (const [name, mode, value, needles] of [
+    [
+      "a js cell whose import precedes an edited line",
+      "js",
+      'import {select} from "npm:d3";\nconst zz = select(await import("npm:d3"));\nzz.boom();',
+      [
+        ["const zz", "const zz"],
+        ["zz = select", "zz = select"],
+        ["select(await", "select(await"],
+        ["select(|await", "select(|await"],
+        ["zz.|boom", "zz.|boom"],
+      ],
+    ],
+    [
+      "a ts cell whose import precedes an annotated line",
+      "ts",
+      'import {select} from "npm:d3";\nconst zz: any = select("body");',
+      [
+        ["const zz", "const zz"],
+        ["zz = select", "zz: any"],
+        ['select("body', 'select("body'],
+      ],
+    ],
+    [
+      "a ts cell whose type import precedes an annotated line",
+      "ts",
+      'import type {Selection} from "npm:d3";\nimport {select} from "npm:d3";\nconst zz: Selection = select("body");',
+      [
+        ["const zz", "const zz"],
+        ["zz = select", "zz: Selection"],
+        ['select("body', 'select("body'],
+      ],
+    ],
+  ] as const) {
+    it(`maps ${name} to its own line`, () => {
+      const cell = compile(mode, value, new Map([["npm:d3", "/_m/d3@7/index.js"]]));
+      for (const [inBody, inSource] of needles) {
+        expect(traceToken(cell, inBody), inBody).toEqual({
+          source: "cell-7",
+          ...positionOf(value, inSource),
+        });
+      }
+    });
+  }
+
+  it("maps a data-heavy ts cell in time linear in its size", () => {
+    // Each line is edited (its annotation erased) and long: a character diff of whole lines
+    // costs their length squared, 14 s for 900 such lines before.
+    const row = (i: number) =>
+      `const a${i}: number[] = [${Array.from({ length: 220 }, (_, j) => (j * 7919 + i) % 1000).join(",")}];`;
+    const value = Array.from({ length: 400 }, (_, i) => row(i)).join("\n");
+    const started = performance.now();
+    const cell = compile("ts", value);
+    expect(performance.now() - started).toBeLessThan(3000);
+    expect(traceToken(cell, "a399 =")).toEqual({ source: "cell-7", ...positionOf(value, "a399:") });
+  });
 });

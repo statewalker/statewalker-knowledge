@@ -214,7 +214,9 @@ package's edits (the cut of sucrase's import line, the React wrapper), and noteb
 which `transpile` makes but returns no map of. Those are recovered from a diff of its input and
 output (lines, then the characters of each edited line) and replayed onto a magic-string, which
 must rebuild the body exactly. When it does not, or the cell is too long to diff (beyond about
-2,000 lines), that stage's map is line-only: each unchanged line maps to its line, at column 0.
+2,000 lines, or diffs over a fixed budget of work), that stage's map is line-only: each line
+kept or edited in place maps to its line, at column 0. A map that cannot be composed is left
+out; the cell still compiles.
 
 Two limits come from sucrase 3.35.1: the first token inside a JSX `{...}` maps to the brace, and
 after an element with a `key` prop the columns of the rest of the cell are lost (lines stay

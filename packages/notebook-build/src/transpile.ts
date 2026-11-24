@@ -118,7 +118,8 @@ export function transpileCell(
   if (sourceName !== undefined) {
     // notebook-kit builds the body from edits of `cell.value` (the `sql` template rewrite
     // included) but returns no map of them: they are recovered from a diff.
-    t.map = composeMaps([mapOfRewrite(cell.value, t.body, "kit-in")], sourceName, cell.value);
+    const map = composeMaps([mapOfRewrite(cell.value, t.body, "kit-in")], sourceName, cell.value);
+    if (map) t.map = map;
   }
   return t;
 }
