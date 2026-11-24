@@ -33,12 +33,15 @@
     "test:browser": "pnpm --filter @statewalker/notebook-db run build && vitest run test-browser --config vitest.browser.config.ts"
   },
   "dependencies": {
+    "@jridgewell/remapping": "catalog:",
     "@observablehq/notebook-kit": "catalog:",
+    "magic-string": "catalog:",
     "markdown-it": "catalog:",
     "sucrase": "catalog:"
   },
   "devDependencies": {
     "@duckdb/duckdb-wasm": "catalog:",
+    "@jridgewell/trace-mapping": "catalog:",
     "@statewalker/db-duckdb-browser": "catalog:",
     "@statewalker/notebook-db": "workspace:^",
     "@statewalker/webrun-files-mem": "catalog:",

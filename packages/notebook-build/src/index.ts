@@ -21,4 +21,9 @@ export {
   toModuleRef,
 } from "./resolve.js";
 export { type DomEnv, notebookHash, serializeNotebook } from "./serialize.js";
-export { type CellDefinition, transpileNotebook } from "./transpile.js";
+export {
+  type CellDefinition,
+  type SourceMapV3,
+  type TranspileNotebookOptions,
+  transpileNotebook,
+} from "./transpile.js";

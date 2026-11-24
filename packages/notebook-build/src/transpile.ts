@@ -8,6 +8,9 @@ import {
 } from "@observablehq/notebook-kit";
 import { transpileJsx } from "./jsx.js";
 import type { PinMap } from "./resolve.js";
+import { composeMaps, mapOfRewrite, type SourceMapV3 } from "./source-map.js";
+
+export type { SourceMapV3 } from "./source-map.js";
 
 /**
  * A cell's mode as this package reads it: notebook-kit's `CellMode` plus `jsx` and `tsx`, which
@@ -33,7 +36,23 @@ export interface CellDefinition {
   mode: NotebookCellMode;
   /** Set when the cell did not compile; the page renders this in its place. */
   error?: string;
+  /**
+   * A version 3 source map from `body` to the cell's source (`cell.value`): its one source is
+   * named by `TranspileNotebookOptions.sourceName` (default `cell-<id>`) and carries the source
+   * as `sourcesContent`, so a caller can compose it with a map of its own (cell source to
+   * Markdown, page script to cell). Set on every compiled cell; never on prose or a cell that
+   * did not compile.
+   */
+  map?: SourceMapV3;
 }
+
+export interface TranspileNotebookOptions {
+  /** The name of each cell map's one source. Default: `cell-<id>`. */
+  sourceName?: (cell: Cell) => string;
+}
+
+/** What `transpileCell` returns: notebook-kit's result, plus a map when one was asked for. */
+export type TranspiledCell = TranspiledJavaScript & { map?: SourceMapV3 };
 
 /**
  * The modes this build compiles and the page can actually run. Exported because `render.ts`
@@ -81,16 +100,27 @@ export const CODE_MODES = new Set<NotebookCellMode>(["js", "ts", "jsx", "tsx", "
  * types without a transform (and refuses the non-erasable syntax: enums, namespaces,
  * parameter properties).
  */
-export function transpileCell(cell: Cell, options: TranspileOptions): TranspiledJavaScript {
+export function transpileCell(
+  cell: Cell,
+  options: TranspileOptions,
+  /** Name of the map's source; without it no map is built (`collectSpecifiers` needs none). */
+  sourceName?: string,
+): TranspiledCell {
   const mode = cell.mode as NotebookCellMode;
   if (mode === "jsx" || mode === "tsx") {
     // notebook-kit's `transpile(cell)` applies these two attributes; the jsx path must too.
-    const t = transpileJsx(cell.value, mode, options);
+    const t = transpileJsx(cell.value, mode, options, sourceName);
     if (cell.output) t.output = cell.output;
     if (cell.hidden) t.autodisplay = false;
     return t;
   }
-  return transpile(cell, options);
+  const t: TranspiledCell = transpile(cell, options);
+  if (sourceName !== undefined) {
+    // notebook-kit builds the body from edits of `cell.value` (the `sql` template rewrite
+    // included) but returns no map of them: they are recovered from a diff.
+    t.map = composeMaps([mapOfRewrite(cell.value, t.body, "kit-in")], sourceName, cell.value);
+  }
+  return t;
 }
 
 /**
@@ -103,8 +133,13 @@ export function transpileCell(cell: Cell, options: TranspileOptions): Transpiled
  * "undefined" or a mangled value, which would fail at link time in the browser with a message
  * pointing nowhere near the cause.
  */
-export function transpileNotebook(nb: Notebook, pins: PinMap): CellDefinition[] {
+export function transpileNotebook(
+  nb: Notebook,
+  pins: PinMap,
+  options: TranspileNotebookOptions = {},
+): CellDefinition[] {
   const resolveImport = (specifier: string) => pins.get(specifier) ?? specifier;
+  const sourceName = options.sourceName ?? ((cell: Cell) => `cell-${cell.id}`);
 
   return nb.cells.map((cell: Cell): CellDefinition => {
     if (!CODE_MODES.has(cell.mode as NotebookCellMode)) {
@@ -121,7 +156,7 @@ export function transpileNotebook(nb: Notebook, pins: PinMap): CellDefinition[] 
       };
     }
     try {
-      const t = transpileCell(cell, { resolveImport });
+      const t = transpileCell(cell, { resolveImport }, sourceName(cell));
       return {
         id: cell.id,
         body: t.body,
@@ -133,6 +168,7 @@ export function transpileNotebook(nb: Notebook, pins: PinMap): CellDefinition[] 
         ...(t.output === undefined ? {} : { output: t.output }),
         autodisplay: t.autodisplay ?? false,
         mode: cell.mode,
+        ...(t.map === undefined ? {} : { map: t.map }),
       };
     } catch (e) {
       // A cell that does not parse is the normal state while authoring — one broken cell must
